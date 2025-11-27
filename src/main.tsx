@@ -17,6 +17,14 @@ import "./index.css"; // tailwind + global css
 
 import { AuthProvider } from "./context/AuthContext";
 
+// Import test utilities for debugging
+import "./utils/testBackend";
+
+console.log("🚀 Smart Home IoT Frontend Started");
+console.log("📝 To test backend connection, open console and run:");
+console.log("   testBackendConnection()");
+console.log("   testWebSocket()");
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>
