@@ -1,48 +1,81 @@
 // src/components/DeviceCard.tsx
-import React, { useState } from "react";
-import ToggleButton from "./ToggleButton";
+// import React, { useState } from "react";
+// import ToggleButton from "./ToggleButton";
 
-export interface Device {
-    id: number;
-    name: string;
-    type?: string;
-    status?: "on" | "off" | string;
-    mqtt_topic?: string;
+// export interface Device {
+//     id: number;
+//     name: string;
+//     type?: string;
+//     status?: "on" | "off" | string;
+//     mqtt_topic?: string;
+// }
+
+// type Props = {
+//     device: Device;
+//     onToggleStatus?: (id: number, status: string) => void;
+// };
+
+// export default function DeviceCard({ device, onToggleStatus }: Props) {
+//     const [status, setStatus] = useState<string>(device.status ?? "off");
+//     const isOn = status === "on";
+
+//     const handleToggle = (nextValue: boolean) => {
+//         const nextStatus = nextValue ? "on" : "off";
+//         setStatus(nextStatus);
+//         onToggleStatus?.(device.id, nextStatus);
+//     };
+
+//     return (
+//         <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+//             <div className="flex items-center space-x-3">
+//                 <div className="w-12 h-12 rounded-md bg-sky-50 flex items-center justify-center text-sky-600 text-xl">
+//                     {device.type === "light" && "💡"}
+//                     {device.type === "ac" && "❄️"}
+//                     {device.type === "fan" && "🌀"}
+//                 </div>
+//                 <div>
+//                     <div className="font-medium text-gray-800">{device.name}</div>
+//                     <div className="text-xs text-gray-400">Topic: {device.mqtt_topic || "-"}</div>
+//                 </div>
+//             </div>
+
+//             <div className="flex items-center space-x-4">
+//                 <div className="text-sm text-gray-600">{isOn ? "ON" : "OFF"}</div>
+//                 <ToggleButton on={isOn} onToggle={handleToggle} />
+//             </div>
+//         </div>
+//     );
+// }
+
+import React from "react";
+import { Device } from "../api/deviceApi";
+
+interface Props {
+    device: Device;
+    onToggleStatus: (id: number, nextStatus: "on" | "off") => void;
 }
 
-type Props = {
-    device: Device;
-    onToggleStatus?: (id: number, status: string) => void;
-};
-
-export default function DeviceCard({ device, onToggleStatus }: Props) {
-    const [status, setStatus] = useState<string>(device.status ?? "off");
-    const isOn = status === "on";
-
-    const handleToggle = (nextValue: boolean) => {
-        const nextStatus = nextValue ? "on" : "off";
-        setStatus(nextStatus);
-        onToggleStatus?.(device.id, nextStatus);
+const DeviceCard: React.FC<Props> = ({ device, onToggleStatus }) => {
+    const handleClick = () => {
+        const nextStatus = device.status === "on" ? "off" : "on";
+        onToggleStatus(device.id, nextStatus);
     };
 
     return (
-        <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-md bg-sky-50 flex items-center justify-center text-sky-600 text-xl">
-                    {device.type === "light" && "💡"}
-                    {device.type === "ac" && "❄️"}
-                    {device.type === "fan" && "🌀"}
-                </div>
-                <div>
-                    <div className="font-medium text-gray-800">{device.name}</div>
-                    <div className="text-xs text-gray-400">Topic: {device.mqtt_topic || "-"}</div>
-                </div>
+        <div className="bg-white rounded-lg shadow p-4 flex justify-between items-center">
+            <div>
+                <h4 className="font-semibold">{device.name}</h4>
+                <p className="text-sm text-gray-500">{device.type}</p>
             </div>
-
-            <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-600">{isOn ? "ON" : "OFF"}</div>
-                <ToggleButton on={isOn} onToggle={handleToggle} />
-            </div>
+            <button
+                onClick={handleClick}
+                className={`px-3 py-1 rounded ${device.status === "on" ? "bg-green-500 text-white" : "bg-gray-300 text-black"
+                    }`}
+            >
+                {device.status}
+            </button>
         </div>
     );
-}
+};
+
+export default DeviceCard;
