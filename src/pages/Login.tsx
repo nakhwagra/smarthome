@@ -26,27 +26,18 @@ export default function Login(): JSX.Element {
 
         setLoading(true);
         try {
-            // treat response as any to avoid strict typing mismatch
-            const res: any = await authApi.login({ email, password });
+            const res = await authApi.login({ email, password });
+            const body = res.data;
 
-            // normalize body from different possible shapes (AxiosResponse, direct object, nested data)
-            const body = res?.data ?? res ?? {};
-            const nested = body?.data ?? {};
+            if (!body.success || !body.data?.token) {
+                setErr(body.message || "Login gagal");
+                setLoading(false);
+                return;
+            }
 
-            // find token in common places
-            const token =
-                body?.token ??
-                body?.access_token ??
-                nested?.token ??
-                nested?.access_token ??
-                body?.authToken ??
-                null;
+            const { token, user } = body.data;
 
-            // find user object if present
-            const user = body?.user ?? nested?.user ?? { email };
-
-            // If AuthContext provides a login function, try to use it.
-            // We don't assume its exact signature: try flexible call via any.
+            // Simpan auth state
             if (auth && typeof (auth as any).login === "function") {
                 try {
                     // try calling with a common object first

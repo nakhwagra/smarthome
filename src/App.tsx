@@ -34,22 +34,85 @@
 
 // export default App
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
-import Dashboard from "./pages/Dashboard";
-import Devices from "./pages/Devices.jsx";
+// Auth Pages
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+// Dashboard Layout
+import DashboardLayout from "./layouts/DashboardLayout";
+
+// Dashboard Pages
+import Home from "./pages/dashboard/Home";
+import Door from "./pages/dashboard/Door";
+import DevicesPage from "./pages/dashboard/DevicesPage";
 import Sensors from "./pages/Sensors.jsx";
 import History from "./pages/History.jsx";
-import Login from "./pages/Login.jsx";
+
+// Admin Pages
+import PendingUsers from "./pages/admin/PendingUsers";
+import Settings from "./pages/admin/Settings";
+
+// Protected Route Component
+function ProtectedRoute({ children }: { children: JSX.Element }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
+}
+
+// Admin Route Component
+function AdminRoute({ children }: { children: JSX.Element }) {
+  const { isAuthenticated, user } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (user?.role !== "admin") {
+    return <Navigate to="/dashboard" />;
+  }
+  
+  return children;
+}
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/devices" element={<Devices />} />
-      <Route path="/sensors" element={<Sensors />} />
-      <Route path="/history" element={<History />} />
+      {/* Public Routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Protected Dashboard Routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Home />} />
+        <Route path="door" element={<Door />} />
+        <Route path="devices" element={<DevicesPage />} />
+        <Route path="sensors" element={<Sensors />} />
+        <Route path="logs" element={<History />} />
+        
+        {/* Admin Only Routes */}
+        <Route path="admin/pending" element={
+          <AdminRoute>
+            <PendingUsers />
+          </AdminRoute>
+        } />
+        <Route path="admin/settings" element={
+          <AdminRoute>
+            <Settings />
+          </AdminRoute>
+        } />
+      </Route>
+
+      {/* Redirect root to dashboard */}
+      <Route path="/" element={<Navigate to="/dashboard" />} />
+      
+      {/* Catch all - redirect to dashboard */}
+      <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
   );
 }
