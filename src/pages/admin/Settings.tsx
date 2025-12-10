@@ -1,8 +1,9 @@
 // src/pages/admin/Settings.tsx
 import React, { useEffect, useState } from "react";
 import { Key, AlertCircle, CheckCircle } from "lucide-react";
-import axiosClient from "../../api/axiosClient";
+import adminApi from "../../api/adminApi";
 import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Settings(): JSX.Element {
     const [currentPin, setCurrentPin] = useState<string>("");
@@ -12,6 +13,7 @@ export default function Settings(): JSX.Element {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const { isDark } = useTheme();
+    const { user } = useAuth();
 
     useEffect(() => {
         fetchCurrentPin();
@@ -19,7 +21,7 @@ export default function Settings(): JSX.Element {
 
     const fetchCurrentPin = async () => {
         try {
-            const res = await axiosClient.get("/admin/pin");
+            const res = await adminApi.getUniversalPin();
             if (res.data.success && res.data.data) {
                 setCurrentPin(res.data.data.universal_pin || "");
             }
@@ -51,7 +53,27 @@ export default function Settings(): JSX.Element {
 
         setLoading(true);
         try {
-            const res = await axiosClient.post("/admin/pin", { pin: newPin });
+            
+            let userId = user?.user_id || user?.id;
+            
+            // Fallback: try localStorage directly
+            if (!userId) {
+                const storedUser = localStorage.getItem("auth_user");
+                if (storedUser) {
+                    const parsed = JSON.parse(storedUser);
+                    userId = parsed.user_id || parsed.id;
+                }
+            }
+            
+            
+            if (!userId) {
+                setError("User tidak ditemukan. Silakan login ulang.");
+                setLoading(false);
+                return;
+            }
+
+            const res = await adminApi.setUniversalPin(newPin, Number(userId));
+            
             if (res.data.success) {
                 setSuccess("PIN berhasil diperbarui");
                 setCurrentPin(newPin);
@@ -59,8 +81,8 @@ export default function Settings(): JSX.Element {
                 setConfirmPin("");
             }
         } catch (err: unknown) {
-            const axiosErr = err as { response?: { data?: { message?: string } } };
-            setError(axiosErr?.response?.data?.message || "Gagal memperbarui PIN");
+            const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
+            setError(axiosErr?.response?.data?.message || axiosErr?.response?.data?.error || "Gagal memperbarui PIN");
         } finally {
             setLoading(false);
         }
@@ -81,7 +103,7 @@ export default function Settings(): JSX.Element {
             {/* Settings Card */}
             <div className={`max-w-2xl rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
                 {/* Card Header */}
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3 pb-6 mb-6 border-b border-slate-200 dark:border-slate-700">
                     <div className={`p-3 rounded-xl ${isDark ? "bg-purple-900/30" : "bg-purple-100"}`}>
                         <Key className={`w-6 h-6 ${isDark ? "text-purple-400" : "text-purple-600"}`} />
                     </div>
@@ -188,7 +210,7 @@ export default function Settings(): JSX.Element {
                     >
                         {loading ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-current border-r-transparent rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-current rounded-full border-r-transparent animate-spin" />
                                 Memperbarui...
                             </>
                         ) : (
