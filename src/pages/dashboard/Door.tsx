@@ -1,6 +1,6 @@
 // src/pages/dashboard/Door.tsx
 import React, { useEffect, useState, useRef } from "react";
-import { Unlock, AlertCircle, RefreshCw, Video, VideoOff, Scan, CheckCircle, XCircle, Lock } from "lucide-react";
+import { Unlock, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
 import websocketService, { WS_TYPES } from "../../services/websocketService";
 import { useTheme } from "../../context/ThemeContext";
@@ -11,8 +11,6 @@ export default function Door(): JSX.Element {
     const [doorStatus, setDoorStatus] = useState<string>("locked");
     const [loading, setLoading] = useState(false);
     const [recognizing, setRecognizing] = useState(false);
-    const [cameraError, setCameraError] = useState(false);
-    const [streamUrl, setStreamUrl] = useState("");
     const [faceDetected, setFaceDetected] = useState(false);
     const [faceRecognitionResult, setFaceRecognitionResult] = useState<{
         recognized: boolean;
@@ -24,18 +22,13 @@ export default function Door(): JSX.Element {
     const [pinCode, setPinCode] = useState("");
     const [pinLoading, setPinLoading] = useState(false);
     const { isDark } = useTheme();
-    const imgRef = useRef<HTMLImageElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const recognitionIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const lastRecognitionTimeRef = useRef<number>(0);
 
     const ESP32_CAM_IP = "10.124.88.102";
-    const FRAME_URL = `http://${ESP32_CAM_IP}/640x480.mjpeg`;
 
     useEffect(() => {
         fetchDoorStatus();
-        startCameraStream();
         startAutoRecognition(); // Start auto face recognition
 
         // WebSocket listener untuk door status
@@ -47,35 +40,9 @@ export default function Door(): JSX.Element {
 
         return () => {
             websocketService.off(WS_TYPES.DOOR_STATUS, handleDoorStatus);
-            stopCameraStream();
             stopAutoRecognition();
         };
     }, []);
-
-    const startCameraStream = () => {
-        // Refresh frame setiap 200ms untuk live feed
-        refreshIntervalRef.current = setInterval(() => {
-            if (imgRef.current) {
-                // Tambahkan timestamp untuk force refresh (bypass cache)
-                setStreamUrl(`${FRAME_URL}?t=${Date.now()}`);
-            }
-        }, 200);
-    };
-
-    const stopCameraStream = () => {
-        if (refreshIntervalRef.current) {
-            clearInterval(refreshIntervalRef.current);
-            refreshIntervalRef.current = null;
-        }
-    };
-
-    const handleImageError = () => {
-        setCameraError(true);
-    };
-
-    const handleImageLoad = () => {
-        setCameraError(false);
-    };
 
     const fetchDoorStatus = async () => {
         try {
@@ -112,8 +79,6 @@ export default function Door(): JSX.Element {
         setFaceRecognitionResult(null);
         
         try {
-            const ESP32_CAM_IP = "10.124.88.102";
-            
             // Fetch frame dari ESP32-CAM tanpa no-cors (backend Go bisa act as proxy)
             const frameResponse = await fetch(`http://${ESP32_CAM_IP}/640x480.jpg`);
             
@@ -248,75 +213,17 @@ export default function Door(): JSX.Element {
 
     return (
         <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8`}>
-            {/* Hidden canvas untuk capture frame */}
-            <canvas ref={canvasRef} style={{ display: "none" }} />
             {/* Page Header */}
             <div className="mb-8">
                 <h1 className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
                     Kontrol Pintu & Monitoring
                 </h1>
                 <p className={`mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                    Buka pintu dan pantau kamera secara real-time
+                    Buka pintu dengan deteksi wajah otomatis atau gunakan PIN sebagai cadangan
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {/* Camera Live Feed Card */}
-                <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
-                    <div className="flex items-center gap-3 mb-4">
-                        {cameraError ? (
-                            <VideoOff className={`w-6 h-6 ${isDark ? "text-red-400" : "text-red-600"}`} />
-                        ) : (
-                            <Video className={`w-6 h-6 ${isDark ? "text-green-400" : "text-green-600"}`} />
-                        )}
-                        <div>
-                            <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
-                                Live Camera Feed
-                            </h3>
-                            <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                                ESP32-CAM @ {ESP32_CAM_IP}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className={`relative rounded-xl overflow-hidden ${isDark ? "bg-slate-900" : "bg-slate-100"}`}>
-                        {cameraError ? (
-                            <div className="flex flex-col items-center justify-center p-8 h-96">
-                                <AlertCircle className={`w-16 h-16 mb-4 ${isDark ? "text-slate-600" : "text-slate-400"}`} />
-                                <p className={`text-center font-semibold mb-2 ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-                                    Kamera Tidak Tersedia
-                                </p>
-                                <p className={`text-center text-sm ${isDark ? "text-slate-500" : "text-slate-600"}`}>
-                                    Pastikan ESP32-CAM aktif di {ESP32_CAM_IP}
-                                </p>
-                                <button
-                                    onClick={() => {
-                                        setCameraError(false);
-                                        setStreamUrl(`${FRAME_URL}?t=${Date.now()}`);
-                                    }}
-                                    className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
-                                        isDark
-                                            ? "bg-slate-700 hover:bg-slate-600 text-white"
-                                            : "bg-slate-200 hover:bg-slate-300 text-slate-900"
-                                    }`}
-                                >
-                                    <RefreshCw className="w-4 h-4" />
-                                    Coba Lagi
-                                </button>
-                            </div>
-                        ) : (
-                            <img
-                                ref={imgRef}
-                                src={streamUrl}
-                                alt="ESP32-CAM Live Feed"
-                                onError={handleImageError}
-                                onLoad={handleImageLoad}
-                                className="w-full h-auto"
-                            />
-                        )}
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-1">
                 {/* Door Control Card */}
                 <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
                     <div className="mb-6">
