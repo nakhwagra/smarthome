@@ -21,7 +21,9 @@ axiosClient.interceptors.request.use((config) => {
   try {
     const token = localStorage.getItem("auth_token");
     if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
-  } catch {}
+  } catch {
+    // Ignore localStorage errors
+  }
   
   // Debug log untuk semua request
   console.log("📤 API Request:", {

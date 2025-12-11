@@ -44,7 +44,7 @@ const faceApi = {
     
     // Get face recognition access logs
     getLogs: () => 
-        axiosClient.get<{ success: boolean; data: any[] }>("/face/logs"),
+        axiosClient.get<{ success: boolean; data: unknown[] }>("/face/logs"),
 };
 
 export default faceApi;

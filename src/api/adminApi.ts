@@ -10,7 +10,7 @@ export interface PendingUser {
 
 export interface UniversalPin {
     pin_id: number;
-    pin_code: string;
+    universal_pin: string;
     created_at: string;
     updated_at: string;
 }
