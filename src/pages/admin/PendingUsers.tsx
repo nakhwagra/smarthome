@@ -1,10 +1,11 @@
 // src/pages/admin/PendingUsers.tsx
 import React, { useEffect, useState } from "react";
+import { Check, X, AlertCircle, Loader } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
-import "../../styles/dashboard.css";
+import { useTheme } from "../../context/ThemeContext";
 
 interface PendingUser {
-    id: number;
+    user_id: number; 
     name: string;
     email: string;
     created_at: string;
@@ -14,6 +15,7 @@ export default function PendingUsers(): JSX.Element {
     const [users, setUsers] = useState<PendingUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<{ [key: number]: boolean }>({});
+    const { isDark } = useTheme();
 
     useEffect(() => {
         fetchPendingUsers();
@@ -24,6 +26,7 @@ export default function PendingUsers(): JSX.Element {
         try {
             const res = await axiosClient.get("/admin/users/pending");
             if (res.data.success && res.data.data) {
+                console.log("📋 Pending users data:", res.data.data);
                 setUsers(res.data.data);
             }
         } catch (err) {
@@ -34,15 +37,17 @@ export default function PendingUsers(): JSX.Element {
     };
 
     const handleApprove = async (userId: number) => {
+        console.log("🔍 Approving user with ID:", userId);
         setActionLoading(prev => ({ ...prev, [userId]: true }));
         try {
-            const res = await axiosClient.post(`/user/${userId}/approve`);
+            const res = await axiosClient.post(`/admin/users/${userId}/approve`);
             if (res.data.success) {
                 alert("User berhasil disetujui");
-                setUsers(prev => prev.filter(u => u.id !== userId));
+                setUsers(prev => prev.filter(u => u.user_id !== userId));
             }
-        } catch (err: any) {
-            alert(err?.response?.data?.message || "Gagal menyetujui user");
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { data?: { message?: string } } };
+            alert(axiosErr?.response?.data?.message || "Gagal menyetujui user");
         } finally {
             setActionLoading(prev => ({ ...prev, [userId]: false }));
         }
@@ -53,13 +58,14 @@ export default function PendingUsers(): JSX.Element {
 
         setActionLoading(prev => ({ ...prev, [userId]: true }));
         try {
-            const res = await axiosClient.post(`/user/${userId}/reject`);
+            const res = await axiosClient.post(`/admin/users/${userId}/reject`);
             if (res.data.success) {
                 alert("User berhasil ditolak");
-                setUsers(prev => prev.filter(u => u.id !== userId));
+                setUsers(prev => prev.filter(u => u.user_id !== userId));
             }
-        } catch (err: any) {
-            alert(err?.response?.data?.message || "Gagal menolak user");
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { data?: { message?: string } } };
+            alert(axiosErr?.response?.data?.message || "Gagal menolak user");
         } finally {
             setActionLoading(prev => ({ ...prev, [userId]: false }));
         }
@@ -67,64 +73,112 @@ export default function PendingUsers(): JSX.Element {
 
     if (loading) {
         return (
-            <div className="pending-users-page">
-                <div className="page-header">
-                    <h1>Pending Users</h1>
-                    <p>Setujui atau tolak registrasi user baru</p>
+            <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8 flex items-center justify-center`}>
+                <div className="text-center">
+                    <Loader className={`w-8 h-8 animate-spin mx-auto mb-4 ${isDark ? "text-slate-400" : "text-slate-600"}`} />
+                    <p className={isDark ? "text-slate-400" : "text-slate-600"}>Memuat data...</p>
                 </div>
-                <div className="loading">Loading...</div>
             </div>
         );
     }
 
     return (
-        <div className="pending-users-page">
-            <div className="page-header">
-                <h1>Pending Users</h1>
-                <p>Setujui atau tolak registrasi user baru</p>
+        <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8`}>
+            {/* Page Header */}
+            <div className="mb-8">
+                <h1 className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+                    Pending Users
+                </h1>
+                <p className={`mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                    Setujui atau tolak registrasi user baru
+                </p>
             </div>
 
-            <div className="card">
+            {/* Users Card */}
+            <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
                 {users.length === 0 ? (
-                    <div className="empty-state">
-                        <div className="empty-icon">✅</div>
-                        <h3>Tidak ada user pending</h3>
-                        <p>Semua user sudah diproses</p>
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <AlertCircle className={`w-12 h-12 mb-4 ${isDark ? "text-slate-600" : "text-slate-300"}`} />
+                        <h3 className={`text-lg font-semibold mb-2 ${isDark ? "text-white" : "text-slate-900"}`}>
+                            Tidak ada user pending
+                        </h3>
+                        <p className={isDark ? "text-slate-400" : "text-slate-600"}>
+                            Semua user sudah diproses
+                        </p>
                     </div>
                 ) : (
-                    <div className="table-container">
-                        <table>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
                             <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nama</th>
-                                    <th>Email</th>
-                                    <th>Tanggal Daftar</th>
-                                    <th>Aksi</th>
+                                <tr className={`border-b ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                        ID
+                                    </th>
+                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                        Nama
+                                    </th>
+                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                        Email
+                                    </th>
+                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                        Tanggal Daftar           
+                                    </th>
+                                    <th className={`text-right py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                        Aksi
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {users.map(user => (
-                                    <tr key={user.id}>
-                                        <td>{user.id}</td>
-                                        <td>{user.name}</td>
-                                        <td>{user.email}</td>
-                                        <td>{new Date(user.created_at).toLocaleString("id-ID")}</td>
-                                        <td>
-                                            <div style={{ display: "flex", gap: "8px" }}>
+                                    <tr 
+                                        key={user.user_id} 
+                                        className={`border-b transition-colors ${
+                                            isDark
+                                                ? "border-slate-700 hover:bg-slate-700/50"
+                                                : "border-slate-100 hover:bg-slate-50"
+                                        }`}
+                                    >
+                                        <td className={`py-3 px-4 text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-900"}`}>
+                                            #{user.user_id}
+                                        </td>
+                                        <td className={`py-3 px-4 text-sm ${isDark ? "text-slate-300" : "text-slate-900"}`}>
+                                            {user.name}
+                                        </td>
+                                        <td className={`py-3 px-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                                            {user.email}
+                                        </td>
+                                        <td className={`py-3 px-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                                            {new Date(user.created_at).toLocaleString("id-ID")}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm">
+                                            <div className="flex justify-end gap-2">
                                                 <button 
-                                                    className="btn btn-sm btn-success"
-                                                    onClick={() => handleApprove(user.id)}
-                                                    disabled={actionLoading[user.id]}
+                                                    onClick={() => handleApprove(user.user_id)}
+                                                    disabled={actionLoading[user.user_id]}
+                                                    className={`flex items-center gap-1 px-3 py-2 rounded-lg font-semibold transition-all ${
+                                                        actionLoading[user.user_id]
+                                                            ? isDark
+                                                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                                                : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                                            : "bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl"
+                                                    }`}
                                                 >
-                                                    ✓ Setujui
+                                                    <Check className="w-4 h-4" />
+                                                    Setujui
                                                 </button>
                                                 <button 
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() => handleReject(user.id)}
-                                                    disabled={actionLoading[user.id]}
+                                                    onClick={() => handleReject(user.user_id)}
+                                                    disabled={actionLoading[user.user_id]}
+                                                    className={`flex items-center gap-1 px-3 py-2 rounded-lg font-semibold transition-all ${
+                                                        actionLoading[user.user_id]
+                                                            ? isDark
+                                                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                                                : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                                            : "bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl"
+                                                    }`}
                                                 >
-                                                    ✕ Tolak
+                                                    <X className="w-4 h-4" />
+                                                    Tolak
                                                 </button>
                                             </div>
                                         </td>

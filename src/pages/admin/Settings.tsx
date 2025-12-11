@@ -1,7 +1,8 @@
 // src/pages/admin/Settings.tsx
 import React, { useEffect, useState } from "react";
+import { Key, AlertCircle, CheckCircle } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
-import "../../styles/dashboard.css";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function Settings(): JSX.Element {
     const [currentPin, setCurrentPin] = useState<string>("");
@@ -10,6 +11,7 @@ export default function Settings(): JSX.Element {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const { isDark } = useTheme();
 
     useEffect(() => {
         fetchCurrentPin();
@@ -56,156 +58,158 @@ export default function Settings(): JSX.Element {
                 setNewPin("");
                 setConfirmPin("");
             }
-        } catch (err: any) {
-            setError(err?.response?.data?.message || "Gagal memperbarui PIN");
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { data?: { message?: string } } };
+            setError(axiosErr?.response?.data?.message || "Gagal memperbarui PIN");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="settings-page">
-            <div className="page-header">
-                <h1>Pengaturan</h1>
-                <p>Kelola pengaturan sistem</p>
+        <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8`}>
+            {/* Page Header */}
+            <div className="mb-8">
+                <h1 className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+                    Pengaturan
+                </h1>
+                <p className={`mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                    Kelola pengaturan sistem
+                </p>
             </div>
 
-            <div className="card" style={{ maxWidth: "600px" }}>
-                <div className="card-header">
-                    <h3 className="card-title">🔑 Universal PIN</h3>
+            {/* Settings Card */}
+            <div className={`max-w-2xl rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
+                {/* Card Header */}
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
+                    <div className={`p-3 rounded-xl ${isDark ? "bg-purple-900/30" : "bg-purple-100"}`}>
+                        <Key className={`w-6 h-6 ${isDark ? "text-purple-400" : "text-purple-600"}`} />
+                    </div>
+                    <div>
+                        <h2 className={`text-xl font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
+                            Universal PIN
+                        </h2>
+                        <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                            Pengaturan PIN untuk akses pintu
+                        </p>
+                    </div>
                 </div>
 
-                {error && <div className="alert alert-error" style={{ marginBottom: "16px" }}>{error}</div>}
-                {success && <div className="alert alert-success" style={{ marginBottom: "16px" }}>{success}</div>}
+                {/* Alert Messages */}
+                {error && (
+                    <div className={`mb-6 flex items-center gap-3 p-4 rounded-lg ${isDark ? "bg-red-900/20 border border-red-800" : "bg-red-50 border border-red-200"}`}>
+                        <AlertCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-red-400" : "text-red-600"}`} />
+                        <p className={`text-sm ${isDark ? "text-red-300" : "text-red-700"}`}>{error}</p>
+                    </div>
+                )}
 
-                <div style={{ marginBottom: "24px" }}>
-                    <p style={{ fontSize: "14px", color: "#718096", marginBottom: "8px" }}>
-                        PIN Aktif Saat Ini:
+                {success && (
+                    <div className={`mb-6 flex items-center gap-3 p-4 rounded-lg ${isDark ? "bg-green-900/20 border border-green-800" : "bg-green-50 border border-green-200"}`}>
+                        <CheckCircle className={`w-5 h-5 flex-shrink-0 ${isDark ? "text-green-400" : "text-green-600"}`} />
+                        <p className={`text-sm ${isDark ? "text-green-300" : "text-green-700"}`}>{success}</p>
+                    </div>
+                )}
+
+                {/* Current PIN Display */}
+                <div className={`mb-8 p-6 rounded-xl ${isDark ? "bg-slate-700/50" : "bg-slate-50"}`}>
+                    <p className={`text-sm font-medium mb-3 ${isDark ? "text-slate-400" : "text-slate-700"}`}>
+                        PIN Aktif Saat Ini
                     </p>
-                    <div style={{ 
-                        fontSize: "32px", 
-                        fontWeight: "700", 
-                        color: "#2d3748",
-                        letterSpacing: "8px",
-                        fontFamily: "monospace"
-                    }}>
+                    <div className={`text-4xl font-bold tracking-widest font-mono ${
+                        isDark ? "text-purple-400" : "text-purple-600"
+                    }`}>
                         {currentPin || "------"}
                     </div>
                 </div>
 
-                <form onSubmit={handleUpdatePin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div className="form-group">
-                        <label htmlFor="newPin">PIN Baru (6 digit)</label>
+                {/* Form */}
+                <form onSubmit={handleUpdatePin} className="space-y-6">
+                    {/* New PIN Input */}
+                    <div>
+                        <label htmlFor="newPin" className={`block text-sm font-semibold mb-2 ${isDark ? "text-white" : "text-slate-900"}`}>
+                            PIN Baru (6 digit)
+                        </label>
                         <input
                             id="newPin"
                             type="text"
                             value={newPin}
-                            onChange={(e) => setNewPin(e.target.value)}
+                            onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             placeholder="000000"
                             maxLength={6}
                             disabled={loading}
-                            style={{ 
-                                fontSize: "20px", 
-                                letterSpacing: "4px", 
-                                fontFamily: "monospace",
-                                textAlign: "center"
-                            }}
+                            className={`w-full text-center text-2xl font-mono font-bold tracking-widest px-4 py-3 rounded-lg border-2 transition-all ${
+                                isDark
+                                    ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                                    : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         />
                     </div>
 
-                    <div className="form-group">
-                        <label htmlFor="confirmPin">Konfirmasi PIN</label>
+                    {/* Confirm PIN Input */}
+                    <div>
+                        <label htmlFor="confirmPin" className={`block text-sm font-semibold mb-2 ${isDark ? "text-white" : "text-slate-900"}`}>
+                            Konfirmasi PIN
+                        </label>
                         <input
                             id="confirmPin"
                             type="text"
                             value={confirmPin}
-                            onChange={(e) => setConfirmPin(e.target.value)}
+                            onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             placeholder="000000"
                             maxLength={6}
                             disabled={loading}
-                            style={{ 
-                                fontSize: "20px", 
-                                letterSpacing: "4px", 
-                                fontFamily: "monospace",
-                                textAlign: "center"
-                            }}
+                            className={`w-full text-center text-2xl font-mono font-bold tracking-widest px-4 py-3 rounded-lg border-2 transition-all ${
+                                isDark
+                                    ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                                    : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         />
                     </div>
 
+                    {/* PIN Mismatch Warning */}
+                    {newPin && confirmPin && newPin !== confirmPin && (
+                        <div className={`flex items-center gap-2 p-3 rounded-lg ${isDark ? "bg-yellow-900/20 text-yellow-300" : "bg-yellow-50 text-yellow-700"}`}>
+                            <AlertCircle className="w-4 h-4" />
+                            <p className="text-sm">PIN tidak cocok</p>
+                        </div>
+                    )}
+
+                    {/* Submit Button */}
                     <button 
                         type="submit" 
-                        className="btn btn-primary"
-                        disabled={loading || !newPin || !confirmPin}
+                        disabled={loading || !newPin || !confirmPin || newPin !== confirmPin}
+                        className={`w-full py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                            loading || !newPin || !confirmPin || newPin !== confirmPin
+                                ? isDark
+                                    ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                : "bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl"
+                        }`}
                     >
-                        {loading ? "Memperbarui..." : "Perbarui PIN"}
+                        {loading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-current border-r-transparent rounded-full animate-spin" />
+                                Memperbarui...
+                            </>
+                        ) : (
+                            <>
+                                <Key className="w-5 h-5" />
+                                Perbarui PIN
+                            </>
+                        )}
                     </button>
                 </form>
 
-                <div style={{ 
-                    marginTop: "24px", 
-                    padding: "12px", 
-                    background: "#fef5e7", 
-                    borderRadius: "8px",
-                    fontSize: "13px",
-                    color: "#7d6608"
-                }}>
-                    <strong>⚠️ Perhatian:</strong> PIN ini digunakan sebagai fallback untuk membuka pintu melalui keypad ESP32.
+                {/* Warning Note */}
+                <div className={`mt-6 p-4 rounded-lg ${isDark ? "bg-orange-900/20 border border-orange-800" : "bg-orange-50 border border-orange-200"}`}>
+                    <p className={`text-sm flex items-start gap-2 ${isDark ? "text-orange-300" : "text-orange-700"}`}>
+                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <span>
+                            <strong>Perhatian:</strong> PIN ini digunakan sebagai fallback untuk membuka pintu melalui keypad ESP32. Jangan bagikan PIN ini kepada orang yang tidak berwenang.
+                        </span>
+                    </p>
                 </div>
             </div>
         </div>
     );
 }
-
-// Tambahkan style untuk alert
-const style = document.createElement("style");
-style.textContent = `
-.alert {
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-}
-
-.alert-error {
-    background: #fed7d7;
-    color: #c53030;
-    border: 1px solid #fc8181;
-}
-
-.alert-success {
-    background: #c6f6d5;
-    color: #2f855a;
-    border: 1px solid #68d391;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.form-group label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #2d3748;
-}
-
-.form-group input {
-    padding: 12px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-group input:disabled {
-    background: #f7fafc;
-    cursor: not-allowed;
-}
-`;
-document.head.appendChild(style);

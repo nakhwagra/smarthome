@@ -24,10 +24,13 @@ interface Props {
     title: string;
     value: number | string;
     unit?: string;
+    color?: string;
+    icon?: React.ReactNode;
 }
 
-const SensorWidget: React.FC<Props> = ({ title, value, unit }) => (
+const SensorWidget: React.FC<Props> = ({ title, value, unit, color, icon }) => (
     <div className="bg-white rounded-lg shadow p-4 text-center">
+        {icon && <div className="mb-2">{icon}</div>}
         <h3 className="text-sm text-gray-500">{title}</h3>
         <p className="text-2xl font-bold">
             {value} {unit ?? ""}

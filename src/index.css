@@ -71,11 +71,46 @@ button:focus-visible {
 @tailwind components;
 @tailwind utilities;
 
-/* Global custom styles */
-body {
-  @apply bg-gray-100 text-gray-800;
-}
-
+/* Global Styles */
 * {
   @apply transition-colors duration-200;
+}
+
+html {
+  @apply scroll-smooth;
+}
+
+body {
+  @apply bg-slate-50 dark:bg-slate-900;
+}
+
+/* Animations */
+@keyframes pulse-danger {
+  0%, 100% {
+    @apply border-red-500 shadow-[0_0_0_0_rgba(239,68,68,0.4)];
+  }
+  50% {
+    @apply border-red-600 shadow-[0_0_0_8px_rgba(239,68,68,0)];
+  }
+}
+
+.danger-pulse {
+  @apply animate-pulse border-2 border-red-500;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-slate-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-500;
 }

@@ -15,6 +15,14 @@ export interface RegisterPayload {
 export interface LoginResponse {
     success: boolean;
     message: string;
+    token?: string; // Direct token at root level
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+        role: string;
+        status: string;
+    };
     data?: {
         token: string;
         user: {

@@ -1,31 +1,22 @@
 // src/services/websocketService.ts
-
-interface WebSocketMessage {
-    type: string;
-    data: unknown;
-}
-
-type MessageHandler<T = unknown> = (data: T) => void;
-
 class WebSocketService {
-    private ws: WebSocket | null = null;
-    private url: string = "ws://10.124.88.57:8080/api/ws";
-    private reconnectDelay: number = 3000;
-    private reconnectTimer: NodeJS.Timeout | null = null;
-    private handlers: Map<string, MessageHandler<unknown>[]> = new Map();
-    private isConnecting: boolean = false;
-
+    constructor() {
+        this.ws = null;
+        this.url = "ws://10.124.88.57:8080/api/ws";
+        this.reconnectDelay = 3000;
+        this.reconnectTimer = null;
+        this.handlers = new Map();
+        this.isConnecting = false;
+    }
     connect() {
-        if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
+        var _a;
+        if (((_a = this.ws) === null || _a === void 0 ? void 0 : _a.readyState) === WebSocket.OPEN || this.isConnecting) {
             return;
         }
-
         this.isConnecting = true;
         console.log("🔌 Connecting to WebSocket...");
-
         try {
             this.ws = new WebSocket(this.url);
-
             this.ws.onopen = () => {
                 console.log("✅ WebSocket connected");
                 this.isConnecting = false;
@@ -34,61 +25,54 @@ class WebSocketService {
                     this.reconnectTimer = null;
                 }
             };
-
             this.ws.onmessage = (event) => {
                 try {
                     const message = JSON.parse(event.data);
                     this.handleMessage(message);
-                } catch (err) {
+                }
+                catch (err) {
                     console.error("Failed to parse WebSocket message:", err);
                 }
             };
-
             this.ws.onerror = (error) => {
                 console.error("❌ WebSocket error:", error);
                 this.isConnecting = false;
             };
-
             this.ws.onclose = () => {
                 console.log("🔌 WebSocket disconnected");
                 this.isConnecting = false;
                 this.scheduleReconnect();
             };
-        } catch (err) {
+        }
+        catch (err) {
             console.error("Failed to create WebSocket:", err);
             this.isConnecting = false;
             this.scheduleReconnect();
         }
     }
-
-    private scheduleReconnect() {
-        if (this.reconnectTimer) return;
-
+    scheduleReconnect() {
+        if (this.reconnectTimer)
+            return;
         console.log(`⏳ Reconnecting in ${this.reconnectDelay / 1000}s...`);
         this.reconnectTimer = setTimeout(() => {
             this.reconnectTimer = null;
             this.connect();
         }, this.reconnectDelay);
     }
-
     disconnect() {
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);
             this.reconnectTimer = null;
         }
-
         if (this.ws) {
             this.ws.close();
             this.ws = null;
         }
-
         this.handlers.clear();
         console.log("🔌 WebSocket disconnected manually");
     }
-
-    private handleMessage(message: WebSocketMessage) {
-        const { type, data } = message as any;
-
+    handleMessage(message) {
+        const { type, data } = message;
         // Handle typed messages
         if (type) {
             const handlers = this.handlers.get(type);
@@ -96,17 +80,16 @@ class WebSocketService {
                 handlers.forEach(handler => {
                     try {
                         handler(data);
-                    } catch (err) {
+                    }
+                    catch (err) {
                         console.error(`Error in handler for type ${type}:`, err);
                     }
                 });
             }
             return;
         }
-
         // Handle raw sensor data (from MQTT broadcast)
-        const rawMessage = message as any;
-        
+        const rawMessage = message;
         // Emit temperature if present
         if (rawMessage.temperature !== undefined) {
             const handlers = this.handlers.get("temperature");
@@ -114,13 +97,13 @@ class WebSocketService {
                 handlers.forEach(handler => {
                     try {
                         handler({ value: rawMessage.temperature });
-                    } catch (err) {
+                    }
+                    catch (err) {
                         console.error("Error in temperature handler:", err);
                     }
                 });
             }
         }
-
         // Emit humidity if present
         if (rawMessage.humidity !== undefined) {
             const handlers = this.handlers.get("humidity");
@@ -128,13 +111,13 @@ class WebSocketService {
                 handlers.forEach(handler => {
                     try {
                         handler({ value: rawMessage.humidity });
-                    } catch (err) {
+                    }
+                    catch (err) {
                         console.error("Error in humidity handler:", err);
                     }
                 });
             }
         }
-
         // Emit gas if present
         if (rawMessage.gas_ppm !== undefined) {
             const handlers = this.handlers.get("gas");
@@ -142,13 +125,13 @@ class WebSocketService {
                 handlers.forEach(handler => {
                     try {
                         handler({ value: rawMessage.gas_ppm });
-                    } catch (err) {
+                    }
+                    catch (err) {
                         console.error("Error in gas handler:", err);
                     }
                 });
             }
         }
-
         // Emit light if present (handle both light_lux and lux)
         if (rawMessage.light_lux !== undefined || rawMessage.lux !== undefined) {
             const handlers = this.handlers.get("light");
@@ -156,13 +139,13 @@ class WebSocketService {
                 handlers.forEach(handler => {
                     try {
                         handler({ value: rawMessage.light_lux || rawMessage.lux });
-                    } catch (err) {
+                    }
+                    catch (err) {
                         console.error("Error in light handler:", err);
                     }
                 });
             }
         }
-
         // Emit curtain if present
         if (rawMessage.curtain !== undefined) {
             const handlers = this.handlers.get("curtain");
@@ -170,56 +153,52 @@ class WebSocketService {
                 handlers.forEach(handler => {
                     try {
                         handler({ status: rawMessage.curtain });
-                    } catch (err) {
+                    }
+                    catch (err) {
                         console.error("Error in curtain handler:", err);
                     }
                 });
             }
         }
-
         if (!type && !rawMessage.temperature && !rawMessage.humidity && !rawMessage.gas_ppm && !rawMessage.light_lux && !rawMessage.lux && !rawMessage.curtain) {
             console.warn("Received unknown message:", message);
         }
     }
-
     // Subscribe ke tipe message tertentu
-    on<T = unknown>(type: string, handler: MessageHandler<T>) {
+    on(type, handler) {
         if (!this.handlers.has(type)) {
             this.handlers.set(type, []);
         }
-        this.handlers.get(type)!.push(handler as MessageHandler<unknown>);
+        this.handlers.get(type).push(handler);
     }
-
     // Unsubscribe dari tipe message
-    off<T = unknown>(type: string, handler: MessageHandler<T>) {
+    off(type, handler) {
         const handlers = this.handlers.get(type);
         if (handlers) {
-            const index = handlers.indexOf(handler as MessageHandler<unknown>);
+            const index = handlers.indexOf(handler);
             if (index > -1) {
                 handlers.splice(index, 1);
             }
         }
     }
-
     // Send message ke server (jika perlu)
-    send(message: WebSocketMessage) {
-        if (this.ws?.readyState === WebSocket.OPEN) {
+    send(message) {
+        var _a;
+        if (((_a = this.ws) === null || _a === void 0 ? void 0 : _a.readyState) === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
-        } else {
+        }
+        else {
             console.warn("WebSocket not connected, cannot send message");
         }
     }
-
-    isConnected(): boolean {
-        return this.ws?.readyState === WebSocket.OPEN;
+    isConnected() {
+        var _a;
+        return ((_a = this.ws) === null || _a === void 0 ? void 0 : _a.readyState) === WebSocket.OPEN;
     }
 }
-
 // Singleton instance
 const websocketService = new WebSocketService();
-
 export default websocketService;
-
 // Message types yang dikirim dari backend Go
 export const WS_TYPES = {
     TEMPERATURE: "temperature",

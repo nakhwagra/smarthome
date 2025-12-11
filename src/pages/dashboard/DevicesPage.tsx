@@ -1,12 +1,18 @@
 // src/pages/dashboard/DevicesPage.tsx
 import React, { useEffect, useState } from "react";
+import { Lightbulb, Wind, Power } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
 import websocketService, { WS_TYPES } from "../../services/websocketService";
-import "../../styles/dashboard.css";
+import { useTheme } from "../../context/ThemeContext";
 
 interface DeviceState {
     lamp: string;
     curtain: string;
+}
+
+interface DeviceMode {
+    lamp: "manual" | "auto";
+    curtain: "manual" | "auto";
 }
 
 export default function DevicesPage(): JSX.Element {
@@ -14,17 +20,22 @@ export default function DevicesPage(): JSX.Element {
         lamp: "off",
         curtain: "closed",
     });
+    const [modes, setModes] = useState<DeviceMode>({
+        lamp: "manual",
+        curtain: "manual",
+    });
     const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
+    const { isDark } = useTheme();
 
     useEffect(() => {
         fetchDeviceStatus();
 
         // WebSocket listeners
-        const handleLampStatus = (data: any) => {
+        const handleLampStatus = (data: { status: string }) => {
             setDevices(prev => ({ ...prev, lamp: data.status }));
         };
 
-        const handleCurtainStatus = (data: any) => {
+        const handleCurtainStatus = (data: { status: string }) => {
             setDevices(prev => ({ ...prev, curtain: data.status }));
         };
 
@@ -40,8 +51,8 @@ export default function DevicesPage(): JSX.Element {
     const fetchDeviceStatus = async () => {
         try {
             const [lampRes, curtainRes] = await Promise.all([
-                axiosClient.get("/lamp/status"),
-                axiosClient.get("/curtain/status"),
+                axiosClient.get("/device/lamp/latest").catch(() => ({ data: { success: false, data: null } })),
+                axiosClient.get("/device/curtain/latest").catch(() => ({ data: { success: false, data: null } })),
             ]);
 
             if (lampRes.data.success && lampRes.data.data) {
@@ -56,71 +67,243 @@ export default function DevicesPage(): JSX.Element {
         }
     };
 
-    const handleDeviceControl = async (device: string, action: string) => {
+    const handleDeviceControl = async (device: string, action: string, position?: number) => {
         setLoading(prev => ({ ...prev, [device]: true }));
         try {
-            await axiosClient.post(`/${device}/control`, { action });
-        } catch (err: any) {
-            alert(err?.response?.data?.message || `Gagal mengontrol ${device}`);
+            const mode = modes[device as keyof DeviceMode];
+            const payload: {
+                action: string;
+                mode: string;
+                position?: number;
+            } = { action, mode };
+            
+            if (device === "curtain" && position !== undefined) {
+                payload.position = position;
+            }
+            
+            await axiosClient.post(`/control/${device}`, payload);
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { data?: { message?: string } } };
+            alert(axiosErr?.response?.data?.message || `Gagal mengontrol ${device}`);
         } finally {
             setLoading(prev => ({ ...prev, [device]: false }));
         }
     };
 
+    const toggleMode = (device: keyof DeviceMode) => {
+        setModes(prev => ({
+            ...prev,
+            [device]: prev[device] === "manual" ? "auto" : "manual"
+        }));
+    };
+
+    const isLampOn = devices.lamp === "on";
+    const isCurtainOpen = devices.curtain === "open";
+
     return (
-        <div className="devices-page">
-            <div className="page-header">
-                <h1>Kontrol Perangkat</h1>
-                <p>Kontrol lampu, gorden, dan perangkat lainnya</p>
+        <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8`}>
+            {/* Page Header */}
+            <div className="mb-8">
+                <h1 className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+                    Kontrol Perangkat
+                </h1>
+                <p className={`mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                    Kontrol lampu, gorden, dan perangkat lainnya
+                </p>
             </div>
 
-            <div className="grid grid-2">
-                {/* Lamp Control */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3 className="card-title">💡 Lampu</h3>
-                        <span className={`status-badge ${devices.lamp === "on" ? "active" : ""}`}>
-                            {devices.lamp === "on" ? "Menyala" : "Mati"}
-                        </span>
+            {/* Devices Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Lamp Control Card */}
+                <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className={`p-3 rounded-xl ${isDark ? "bg-yellow-900/30" : "bg-yellow-100"}`}>
+                            <Lightbulb className={`w-8 h-8 ${isDark ? "text-yellow-400" : "text-yellow-600"}`} />
+                        </div>
+                        <div>
+                            <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
+                                Lampu
+                            </h3>
+                            <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                                Kontrol pencahayaan ruangan
+                            </p>
+                        </div>
                     </div>
-                    <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
+
+                    <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${
+                        isLampOn
+                            ? "bg-yellow-100 dark:bg-yellow-900/30"
+                            : isDark ? "bg-slate-700" : "bg-slate-100"
+                    }`}>
+                        <span className={`font-semibold ${
+                            isLampOn
+                                ? "text-yellow-700 dark:text-yellow-300"
+                                : isDark ? "text-slate-300" : "text-slate-700"
+                        }`}>
+                            {isLampOn ? "Menyala" : "Mati"}
+                        </span>
+                        <Power className={`w-5 h-5 ${
+                            isLampOn
+                                ? "text-yellow-600 dark:text-yellow-400"
+                                : isDark ? "text-slate-400" : "text-slate-500"
+                        }`} />
+                    </div>
+
+                    {/* Mode Toggle */}
+                    <div className="mb-4">
+                        <label className={`text-sm font-medium mb-2 block ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                            Mode Kontrol
+                        </label>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => toggleMode("lamp")}
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                                    modes.lamp === "manual"
+                                        ? "bg-blue-600 text-white shadow-md"
+                                        : isDark
+                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                }`}
+                            >
+                                Manual
+                            </button>
+                            <button
+                                onClick={() => toggleMode("lamp")}
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                                    modes.lamp === "auto"
+                                        ? "bg-green-600 text-white shadow-md"
+                                        : isDark
+                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                }`}
+                            >
+                                Otomatis
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3">
                         <button 
-                            className="btn btn-success" 
                             onClick={() => handleDeviceControl("lamp", "on")}
-                            disabled={loading.lamp || devices.lamp === "on"}
+                            disabled={loading.lamp || isLampOn}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
+                                loading.lamp || isLampOn
+                                    ? isDark
+                                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                    : "bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg hover:shadow-xl"
+                            }`}
                         >
                             Nyalakan
                         </button>
                         <button 
-                            className="btn btn-secondary" 
                             onClick={() => handleDeviceControl("lamp", "off")}
-                            disabled={loading.lamp || devices.lamp === "off"}
+                            disabled={loading.lamp || !isLampOn}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
+                                loading.lamp || !isLampOn
+                                    ? isDark
+                                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                    : "bg-slate-600 hover:bg-slate-700 text-white shadow-lg hover:shadow-xl"
+                            }`}
                         >
                             Matikan
                         </button>
                     </div>
                 </div>
 
-                {/* Curtain Control */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3 className="card-title">🪟 Gorden</h3>
-                        <span className={`status-badge ${devices.curtain === "open" ? "active" : ""}`}>
-                            {devices.curtain === "open" ? "Terbuka" : "Tertutup"}
-                        </span>
+                {/* Curtain Control Card */}
+                <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className={`p-3 rounded-xl ${isDark ? "bg-blue-900/30" : "bg-blue-100"}`}>
+                            <Wind className={`w-8 h-8 ${isDark ? "text-blue-400" : "text-blue-600"}`} />
+                        </div>
+                        <div>
+                            <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
+                                Gorden
+                            </h3>
+                            <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                                Kontrol pembukaan gorden
+                            </p>
+                        </div>
                     </div>
-                    <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
+
+                    <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${
+                        isCurtainOpen
+                            ? "bg-blue-100 dark:bg-blue-900/30"
+                            : isDark ? "bg-slate-700" : "bg-slate-100"
+                    }`}>
+                        <span className={`font-semibold ${
+                            isCurtainOpen
+                                ? "text-blue-700 dark:text-blue-300"
+                                : isDark ? "text-slate-300" : "text-slate-700"
+                        }`}>
+                            {isCurtainOpen ? "Terbuka" : "Tertutup"}
+                        </span>
+                        <Wind className={`w-5 h-5 ${
+                            isCurtainOpen
+                                ? "text-blue-600 dark:text-blue-400"
+                                : isDark ? "text-slate-400" : "text-slate-500"
+                        }`} />
+                    </div>
+
+                    {/* Mode Toggle */}
+                    <div className="mb-4">
+                        <label className={`text-sm font-medium mb-2 block ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                            Mode Kontrol
+                        </label>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => toggleMode("curtain")}
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                                    modes.curtain === "manual"
+                                        ? "bg-blue-600 text-white shadow-md"
+                                        : isDark
+                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                }`}
+                            >
+                                Manual
+                            </button>
+                            <button
+                                onClick={() => toggleMode("curtain")}
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                                    modes.curtain === "auto"
+                                        ? "bg-green-600 text-white shadow-md"
+                                        : isDark
+                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                }`}
+                            >
+                                Otomatis
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3">
                         <button 
-                            className="btn btn-success" 
                             onClick={() => handleDeviceControl("curtain", "open")}
-                            disabled={loading.curtain || devices.curtain === "open"}
+                            disabled={loading.curtain || isCurtainOpen}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
+                                loading.curtain || isCurtainOpen
+                                    ? isDark
+                                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl"
+                            }`}
                         >
                             Buka
                         </button>
                         <button 
-                            className="btn btn-secondary" 
                             onClick={() => handleDeviceControl("curtain", "close")}
-                            disabled={loading.curtain || devices.curtain === "closed"}
+                            disabled={loading.curtain || !isCurtainOpen}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
+                                loading.curtain || !isCurtainOpen
+                                    ? isDark
+                                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                    : "bg-slate-600 hover:bg-slate-700 text-white shadow-lg hover:shadow-xl"
+                            }`}
                         >
                             Tutup
                         </button>
