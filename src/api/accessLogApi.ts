@@ -1,12 +1,17 @@
 import axiosClient from "./axiosClient";
 
 export interface AccessLog {
-    log_id: number;
-    user_id?: number;
-    access_method: string; // "face_recognition", "pin", "keypad", "remote"
-    status: string; // "granted", "denied"
+    access_id: number;
+    user_id?: number | null;
+    method: string; // "face", "pin", "remote"
+    status: string; // "success", "failed"
+    image_path?: string;
     timestamp: string;
-    note?: string;
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+    };
 }
 
 export interface AccessLogResponse {
@@ -22,8 +27,8 @@ const accessLogApi = {
     // Get access logs by user ID
     getByUser: (userId: number) => axiosClient.get<AccessLogResponse>(`/access-log/user/${userId}`),
     
-    // Get access logs by status (granted/denied)
-    getByStatus: (status: "granted" | "denied") => axiosClient.get<AccessLogResponse>(`/access-log/status/${status}`),
+    // Get access logs by status (success/failed)
+    getByStatus: (status: "success" | "failed") => axiosClient.get<AccessLogResponse>(`/access-log/status/${status}`),
     
     // Create new access log (usually called by backend, but available)
     create: (payload: Partial<AccessLog>) => axiosClient.post<AccessLogResponse>("/access-log/", payload),

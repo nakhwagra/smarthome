@@ -49,7 +49,7 @@ import Home from "./pages/dashboard/Home";
 import Door from "./pages/dashboard/Door";
 import DevicesPage from "./pages/dashboard/DevicesPage";
 import Sensors from "./pages/Sensors.jsx";
-import History from "./pages/History.jsx";
+import AccessLogs from "./pages/AccessLogs";
 
 // Admin Pages
 import PendingUsers from "./pages/admin/PendingUsers";
@@ -93,7 +93,7 @@ function App() {
         <Route path="door" element={<Door />} />
         <Route path="devices" element={<DevicesPage />} />
         <Route path="sensors" element={<Sensors />} />
-        <Route path="logs" element={<History />} />
+        <Route path="logs" element={<AccessLogs />} />
         
         {/* Admin Only Routes */}
         <Route path="admin/pending" element={

@@ -53,23 +53,18 @@ export default function Settings(): JSX.Element {
 
         setLoading(true);
         try {
-            // Get user ID from AuthContext or localStorage
-            console.log("🔍 Debug user from AuthContext:", user);
             
             let userId = user?.user_id || user?.id;
             
             // Fallback: try localStorage directly
             if (!userId) {
                 const storedUser = localStorage.getItem("auth_user");
-                console.log("🔍 Stored user string:", storedUser);
                 if (storedUser) {
                     const parsed = JSON.parse(storedUser);
-                    console.log("🔍 Parsed user:", parsed);
                     userId = parsed.user_id || parsed.id;
                 }
             }
             
-            console.log("🔍 Final userId:", userId, "Type:", typeof userId);
             
             if (!userId) {
                 setError("User tidak ditemukan. Silakan login ulang.");
@@ -77,11 +72,7 @@ export default function Settings(): JSX.Element {
                 return;
             }
 
-            console.log("📤 Sending PIN update:", { universal_pin: newPin, set_by: userId });
-
             const res = await adminApi.setUniversalPin(newPin, Number(userId));
-            
-            console.log("✅ PIN update response:", res.data);
             
             if (res.data.success) {
                 setSuccess("PIN berhasil diperbarui");
@@ -90,7 +81,6 @@ export default function Settings(): JSX.Element {
                 setConfirmPin("");
             }
         } catch (err: unknown) {
-            console.error("❌ PIN update error:", err);
             const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
             setError(axiosErr?.response?.data?.message || axiosErr?.response?.data?.error || "Gagal memperbarui PIN");
         } finally {
