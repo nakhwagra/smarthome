@@ -4,6 +4,7 @@ import { Eye, EyeOff, Loader } from "lucide-react";
 import authApi from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import logo from "../assets/black.png";
 
 export default function Login(): JSX.Element {
     const auth = useAuth();
@@ -118,11 +119,11 @@ export default function Login(): JSX.Element {
                 )}
             </button>
 
-            <div className={`w-full max-w-5xl mx-4 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-5 ${
+            <div className={`w-full max-w-5xl mx-4 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-5 ${
                 isDark ? "bg-slate-800" : "bg-white"
             }`}>
-                {/* Left Panel - Purple Gradient */}
-                <div className="hidden lg:flex lg:col-span-2 p-12 flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 text-white relative overflow-hidden">
+                {/* Left Panel - Blue Gradient*/}
+                <div className="md:col-span-2 p-8 md:p-12 flex flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 text-white relative overflow-hidden">
                     {/* Decorative circles */}
                     <div className="absolute top-20 right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
                     <div className="absolute bottom-20 left-10 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
@@ -131,15 +132,15 @@ export default function Login(): JSX.Element {
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-2">
                             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                                <span className="text-indigo-600 text-xl font-bold">🏠</span>
+                                <img src={logo} alt="SHIELD logo" className="h-6 w-auto object-contain" />
                             </div>
-                            <span className="text-xl font-semibold">SmartHome</span>
+                            <span className="text-xl font-semibold">SHIELD</span>
                         </div>
                     </div>
 
                     {/* Main Text */}
                     <div className="relative z-10">
-                        <h1 className="text-4xl font-bold leading-tight mb-4">
+                        <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
                             Smart living<br />starts here.
                         </h1>
                         <p className="text-white/80 text-sm">
@@ -150,13 +151,13 @@ export default function Login(): JSX.Element {
                     {/* Bottom decoration */}
                     <div className="relative z-10">
                         <p className="text-xs text-white/60">
-                            © 2024 SmartHome IoT Dashboard
+                            © 2025 Smart Home Intergrated Electronic Lock Device
                         </p>
                     </div>
                 </div>
 
                 {/* Right Panel - Login Form */}
-                <div className={`lg:col-span-3 p-8 lg:p-16 flex flex-col justify-center ${
+                <div className={`md:col-span-3 p-8 lg:p-16 flex flex-col justify-center ${
                     isDark ? "bg-slate-800" : "bg-white"
                 }`}>
                     {/* Header */}
@@ -249,7 +250,7 @@ export default function Login(): JSX.Element {
                             </div>
                         </div>
 
-                        {/* Remember Me */}
+                        {/* Remember Me
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
@@ -263,7 +264,7 @@ export default function Login(): JSX.Element {
                             }`}>
                                 Keep me logged in
                             </label>
-                        </div>
+                        </div> */}
 
                         {/* Submit Button */}
                         <button
@@ -290,7 +291,7 @@ export default function Login(): JSX.Element {
                                 to="/register"
                                 className={`font-medium ${isDark ? "text-indigo-400 hover:text-indigo-300" : "text-indigo-600 hover:text-indigo-700"} hover:underline`}
                             >
-                                Register
+                                Register.
                             </Link>
                         </div>
                     </form>
