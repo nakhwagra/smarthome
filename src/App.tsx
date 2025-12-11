@@ -38,8 +38,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
 // Auth Pages
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Login from "./pages/Login.tsx";
+import Register from "./pages/Register.tsx";
 
 // Dashboard Layout
 import DashboardLayout from "./layouts/DashboardLayout";

@@ -102,3 +102,33 @@
         transform: translateY(0);
     }
 }
+
+/* Smooth transitions */
+input:focus {
+    outline: none;
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* Button hover effects */
+button {
+    transition: all 0.2s ease;
+}
+
+/* Gradient background animation */
+@keyframes gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.bg-gradient-to-br {
+    background-size: 200% 200%;
+    animation: gradient-shift 15s ease infinite;
+}
