@@ -59,10 +59,18 @@ const deviceApi = {
     // get latest curtain status
     getCurtainLatest: () => axiosClient.get("/device/curtain/latest"),
 
+    // get history
+    getLampHistory: () => axiosClient.get("/device/lamp/history"),
+    getDoorHistory: () => axiosClient.get("/device/door/history"),
+
     // control endpoints (use control routes)
     toggleLamp: (payload: any) => axiosClient.post("/control/lamp", payload),
     controlDoor: (payload: any) => axiosClient.post("/control/door", payload),
     controlCurtain: (payload: any) => axiosClient.post("/control/curtain", payload),
+    controlBuzzer: (payload: any) => axiosClient.post("/control/buzzer", payload),
+
+    // door PIN verification
+    verifyDoorPin: (payload: { pin_code: string }) => axiosClient.post("/device/door/verify-pin", payload),
 };
 
 export default deviceApi;

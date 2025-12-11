@@ -1,15 +1,8 @@
 // src/pages/admin/PendingUsers.tsx
 import React, { useEffect, useState } from "react";
 import { Check, X, AlertCircle, Loader } from "lucide-react";
-import axiosClient from "../../api/axiosClient";
+import adminApi, { PendingUser } from "../../api/adminApi";
 import { useTheme } from "../../context/ThemeContext";
-
-interface PendingUser {
-    user_id: number; 
-    name: string;
-    email: string;
-    created_at: string;
-}
 
 export default function PendingUsers(): JSX.Element {
     const [users, setUsers] = useState<PendingUser[]>([]);
@@ -24,7 +17,7 @@ export default function PendingUsers(): JSX.Element {
     const fetchPendingUsers = async () => {
         setLoading(true);
         try {
-            const res = await axiosClient.get("/admin/users/pending");
+            const res = await adminApi.getPendingUsers();
             if (res.data.success && res.data.data) {
                 console.log("📋 Pending users data:", res.data.data);
                 setUsers(res.data.data);
@@ -40,7 +33,7 @@ export default function PendingUsers(): JSX.Element {
         console.log("🔍 Approving user with ID:", userId);
         setActionLoading(prev => ({ ...prev, [userId]: true }));
         try {
-            const res = await axiosClient.post(`/admin/users/${userId}/approve`);
+            const res = await adminApi.approveUser(userId);
             if (res.data.success) {
                 alert("User berhasil disetujui");
                 setUsers(prev => prev.filter(u => u.user_id !== userId));
@@ -58,7 +51,7 @@ export default function PendingUsers(): JSX.Element {
 
         setActionLoading(prev => ({ ...prev, [userId]: true }));
         try {
-            const res = await axiosClient.post(`/admin/users/${userId}/reject`);
+            const res = await adminApi.rejectUser(userId);
             if (res.data.success) {
                 alert("User berhasil ditolak");
                 setUsers(prev => prev.filter(u => u.user_id !== userId));
