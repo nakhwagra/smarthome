@@ -1,46 +1,81 @@
 // src/pages/dashboard/Door.tsx
-import React, { useEffect, useState } from "react";
-import { Lock, Unlock, RotateCcw, AlertCircle, Check } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+import { Unlock, AlertCircle, RefreshCw, Video, VideoOff, Scan, CheckCircle, XCircle, Lock } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
 import websocketService, { WS_TYPES } from "../../services/websocketService";
 import { useTheme } from "../../context/ThemeContext";
 
-interface AccessLog {
-    id: number;
-    method: string;
-    status: string;
-    timestamp: string;
-    user_name?: string;
-}
+const PYTHON_SERVICE_URL = "http://localhost:5001";
 
 export default function Door(): JSX.Element {
-    const [doorStatus, setDoorStatus] = useState<string>("closed");
+    const [doorStatus, setDoorStatus] = useState<string>("locked");
     const [loading, setLoading] = useState(false);
-    const [logs, setLogs] = useState<AccessLog[]>([]);
+    const [recognizing, setRecognizing] = useState(false);
+    const [cameraError, setCameraError] = useState(false);
+    const [streamUrl, setStreamUrl] = useState("");
+    const [faceDetected, setFaceDetected] = useState(false);
+    const [faceRecognitionResult, setFaceRecognitionResult] = useState<{
+        recognized: boolean;
+        name?: string;
+        confidence?: number;
+        message?: string;
+    } | null>(null);
+    const [showPinInput, setShowPinInput] = useState(false);
+    const [pinCode, setPinCode] = useState("");
+    const [pinLoading, setPinLoading] = useState(false);
     const { isDark } = useTheme();
+    const imgRef = useRef<HTMLImageElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const recognitionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const lastRecognitionTimeRef = useRef<number>(0);
+
+    const ESP32_CAM_IP = "10.124.88.102";
+    const FRAME_URL = `http://${ESP32_CAM_IP}/640x480.mjpeg`;
 
     useEffect(() => {
         fetchDoorStatus();
-        fetchAccessLogs();
+        startCameraStream();
+        startAutoRecognition(); // Start auto face recognition
 
         // WebSocket listener untuk door status
         const handleDoorStatus = (data: { status: string }) => {
             setDoorStatus(data.status);
         };
 
-        const handleAccessLog = (data: AccessLog) => {
-            // Tambah log baru ke list
-            setLogs(prev => [data, ...prev].slice(0, 10));
-        };
-
         websocketService.on(WS_TYPES.DOOR_STATUS, handleDoorStatus);
-        websocketService.on(WS_TYPES.ACCESS_LOG, handleAccessLog);
 
         return () => {
             websocketService.off(WS_TYPES.DOOR_STATUS, handleDoorStatus);
-            websocketService.off(WS_TYPES.ACCESS_LOG, handleAccessLog);
+            stopCameraStream();
+            stopAutoRecognition();
         };
     }, []);
+
+    const startCameraStream = () => {
+        // Refresh frame setiap 200ms untuk live feed
+        refreshIntervalRef.current = setInterval(() => {
+            if (imgRef.current) {
+                // Tambahkan timestamp untuk force refresh (bypass cache)
+                setStreamUrl(`${FRAME_URL}?t=${Date.now()}`);
+            }
+        }, 200);
+    };
+
+    const stopCameraStream = () => {
+        if (refreshIntervalRef.current) {
+            clearInterval(refreshIntervalRef.current);
+            refreshIntervalRef.current = null;
+        }
+    };
+
+    const handleImageError = () => {
+        setCameraError(true);
+    };
+
+    const handleImageLoad = () => {
+        setCameraError(false);
+    };
 
     const fetchDoorStatus = async () => {
         try {
@@ -53,195 +88,381 @@ export default function Door(): JSX.Element {
         }
     };
 
-    const fetchAccessLogs = async () => {
-        try {
-            const res = await axiosClient.get("/access-log?limit=10");
-            if (res.data.success && res.data.data) {
-                setLogs(res.data.data);
-            }
-        } catch (err) {
-            console.error("Failed to fetch access logs:", err);
-        }
-    };
-
-    const handleDoorControl = async (action: "open" | "close") => {
+    const handleDoorUnlock = async () => {
         setLoading(true);
         try {
-            // Map frontend actions to backend actions
-            const backendAction = action === "open" ? "unlock" : "lock";
-            await axiosClient.post("/control/door", { action: backendAction });
+            await axiosClient.post("/control/door", { action: "unlock" });
+            // Optimistic update
+            setDoorStatus("unlocked");
+            
+            // Auto-lock setelah 5 detik (sesuai dengan hardware behavior)
+            setTimeout(() => {
+                setDoorStatus("locked");
+            }, 5000);
         } catch (err: unknown) {
             const axiosErr = err as { response?: { data?: { message?: string } } };
-            alert(axiosErr?.response?.data?.message || "Gagal mengontrol pintu");
+            alert(axiosErr?.response?.data?.message || "Gagal membuka pintu");
         } finally {
             setLoading(false);
         }
     };
 
-    const isOpen = doorStatus === "open";
+    const captureAndRecognizeFace = async () => {
+        setRecognizing(true);
+        setFaceRecognitionResult(null);
+        
+        try {
+            const ESP32_CAM_IP = "10.124.88.102";
+            
+            // Fetch frame dari ESP32-CAM tanpa no-cors (backend Go bisa act as proxy)
+            const frameResponse = await fetch(`http://${ESP32_CAM_IP}/640x480.jpg`);
+            
+            if (!frameResponse.ok) {
+                console.error("Failed to fetch frame:", frameResponse.status);
+                setRecognizing(false);
+                return;
+            }
+
+            const blob = await frameResponse.blob();
+            const reader = new FileReader();
+
+            reader.onload = async () => {
+                const base64Image = reader.result as string;
+                console.log("📸 Captured frame, base64 length:", base64Image.length);
+
+                // Send LANGSUNG ke Python service untuk recognize
+                try {
+                    const recognizeResponse = await fetch(`${PYTHON_SERVICE_URL}/recognize-base64`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ image: base64Image })
+                    });
+
+                    const result = await recognizeResponse.json();
+                    console.log("🔍 Recognition result:", result);
+
+                    if (result.success) {
+                        setFaceRecognitionResult({
+                            recognized: result.recognized,
+                            name: result.name,
+                            confidence: result.confidence,
+                            message: result.message
+                        });
+
+                        if (result.recognized) {
+                            // Face recognized → otomatis buka pintu dalam 1 detik
+                            setFaceDetected(true);
+                            setShowPinInput(false);
+                            console.log("✅ Face recognized! Opening door...");
+                            
+                            setTimeout(() => {
+                                handleDoorUnlock();
+                            }, 1000);
+                        } else {
+                            // Face detected tapi not recognized → show PIN
+                            setFaceDetected(true);
+                            setShowPinInput(true);
+                            console.log("⚠️ Unknown face detected - showing PIN fallback");
+                        }
+                    } else {
+                        console.error("❌ Recognition failed:", result);
+                    }
+                } catch (err) {
+                    console.error("❌ Face recognition error:", err);
+                }
+
+                setRecognizing(false);
+            };
+
+            reader.onerror = () => {
+                console.error("❌ FileReader error");
+                setRecognizing(false);
+            };
+
+            reader.readAsDataURL(blob);
+        } catch (err) {
+            console.error("❌ Capture error:", err);
+            setFaceDetected(false);
+            setRecognizing(false);
+        }
+    };
+
+    const startAutoRecognition = () => {
+        // Auto-recognize face setiap 3 detik
+        recognitionIntervalRef.current = setInterval(() => {
+            const now = Date.now();
+            // Avoid recognition spam - min 2 detik antara requests
+            if (now - lastRecognitionTimeRef.current > 2000) {
+                lastRecognitionTimeRef.current = now;
+                captureAndRecognizeFace();
+            }
+        }, 3000);
+        console.log("🔍 Auto-recognition started (every 3 seconds)");
+    };
+
+    const stopAutoRecognition = () => {
+        if (recognitionIntervalRef.current) {
+            clearInterval(recognitionIntervalRef.current);
+            recognitionIntervalRef.current = null;
+        }
+    };
+
+    const handlePinUnlock = async () => {
+        if (!pinCode.trim()) {
+            alert("Masukkan PIN terlebih dahulu");
+            return;
+        }
+
+        setPinLoading(true);
+        try {
+            // POST ke backend Go untuk verify PIN dan unlock
+            const res = await axiosClient.post("/control/door", { 
+                action: "unlock",
+                pin_code: pinCode,
+                method: "pin"
+            });
+
+            if (res.data.success) {
+                setDoorStatus("unlocked");
+                setShowPinInput(false);
+                setPinCode("");
+                
+                // Auto-lock setelah 5 detik
+                setTimeout(() => {
+                    setDoorStatus("locked");
+                }, 5000);
+            } else {
+                alert("PIN salah!");
+            }
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { data?: { message?: string } } };
+            alert(axiosErr?.response?.data?.message || "Gagal unlock dengan PIN");
+        } finally {
+            setPinLoading(false);
+        }
+    };
+
+    const isUnlocked = doorStatus === "unlocked";
 
     return (
         <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8`}>
+            {/* Hidden canvas untuk capture frame */}
+            <canvas ref={canvasRef} style={{ display: "none" }} />
             {/* Page Header */}
             <div className="mb-8">
                 <h1 className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-                    Kontrol Pintu
+                    Kontrol Pintu & Monitoring
                 </h1>
                 <p className={`mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                    Buka/tutup pintu dan lihat riwayat akses
+                    Buka pintu dan pantau kamera secara real-time
                 </p>
             </div>
 
-            {/* Door Status Card */}
-            <div className={`mb-6 rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
-                            Status Pintu
-                        </h3>
-                        <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                            Keadaan pintu saat ini
-                        </p>
-                    </div>
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                        isOpen 
-                            ? "bg-green-100 dark:bg-green-900/30" 
-                            : "bg-orange-100 dark:bg-orange-900/30"
-                    }`}>
-                        {isOpen ? (
-                            <Unlock className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {/* Camera Live Feed Card */}
+                <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
+                    <div className="flex items-center gap-3 mb-4">
+                        {cameraError ? (
+                            <VideoOff className={`w-6 h-6 ${isDark ? "text-red-400" : "text-red-600"}`} />
                         ) : (
-                            <Lock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                            <Video className={`w-6 h-6 ${isDark ? "text-green-400" : "text-green-600"}`} />
                         )}
-                        <span className={`font-semibold text-sm ${
-                            isOpen
-                                ? "text-green-700 dark:text-green-300"
-                                : "text-orange-700 dark:text-orange-300"
-                        }`}>
-                            {isOpen ? "Terbuka" : "Tertutup"}
-                        </span>
+                        <div>
+                            <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
+                                Live Camera Feed
+                            </h3>
+                            <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                                ESP32-CAM @ {ESP32_CAM_IP}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className={`relative rounded-xl overflow-hidden ${isDark ? "bg-slate-900" : "bg-slate-100"}`}>
+                        {cameraError ? (
+                            <div className="flex flex-col items-center justify-center p-8 h-96">
+                                <AlertCircle className={`w-16 h-16 mb-4 ${isDark ? "text-slate-600" : "text-slate-400"}`} />
+                                <p className={`text-center font-semibold mb-2 ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                    Kamera Tidak Tersedia
+                                </p>
+                                <p className={`text-center text-sm ${isDark ? "text-slate-500" : "text-slate-600"}`}>
+                                    Pastikan ESP32-CAM aktif di {ESP32_CAM_IP}
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setCameraError(false);
+                                        setStreamUrl(`${FRAME_URL}?t=${Date.now()}`);
+                                    }}
+                                    className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                                        isDark
+                                            ? "bg-slate-700 hover:bg-slate-600 text-white"
+                                            : "bg-slate-200 hover:bg-slate-300 text-slate-900"
+                                    }`}
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    Coba Lagi
+                                </button>
+                            </div>
+                        ) : (
+                            <img
+                                ref={imgRef}
+                                src={streamUrl}
+                                alt="ESP32-CAM Live Feed"
+                                onError={handleImageError}
+                                onLoad={handleImageLoad}
+                                className="w-full h-auto"
+                            />
+                        )}
                     </div>
                 </div>
 
-                {/* Door Control Buttons */}
-                <div className="flex gap-4">
-                    <button 
-                        onClick={() => handleDoorControl("open")}
-                        disabled={loading || isOpen}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all ${
-                            loading || isOpen
-                                ? isDark
-                                    ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                : "bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl"
-                        }`}
-                    >
-                        <Unlock className="w-5 h-5" />
-                        Buka Pintu
-                    </button>
-                    <button 
-                        onClick={() => handleDoorControl("close")}
-                        disabled={loading || !isOpen}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all ${
-                            loading || !isOpen
-                                ? isDark
-                                    ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                : "bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl"
-                        }`}
-                    >
-                        <Lock className="w-5 h-5" />
-                        Tutup Pintu
-                    </button>
-                </div>
-            </div>
-
-            {/* Access Logs Card */}
-            <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
-                <div className="flex items-center justify-between mb-6">
-                    <div>
+                {/* Door Control Card */}
+                <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
+                    <div className="mb-6">
                         <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
-                            Riwayat Akses
+                            Kontrol Pintu
                         </h3>
                         <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                            Catatan 10 akses terakhir
+                            Pintu akan otomatis terkunci kembali setelah 5 detik
                         </p>
                     </div>
-                    <button 
-                        onClick={fetchAccessLogs}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
-                            isDark
-                                ? "bg-slate-700 hover:bg-slate-600 text-white"
-                                : "bg-slate-100 hover:bg-slate-200 text-slate-900"
-                        }`}
-                    >
-                        <RotateCcw className="w-4 h-4" />
-                        Refresh
-                    </button>
-                </div>
 
-                {logs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                        <AlertCircle className={`w-12 h-12 mb-4 ${isDark ? "text-slate-600" : "text-slate-300"}`} />
-                        <p className={`text-center ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                            Belum ada riwayat akses
+                    {/* Status Display */}
+                    <div className={`mb-6 p-6 rounded-xl text-center ${
+                        isUnlocked 
+                            ? "bg-green-100 dark:bg-green-900/30" 
+                            : "bg-slate-100 dark:bg-slate-700"
+                    }`}>
+                        <div className="flex items-center justify-center mb-3">
+                            {isUnlocked ? (
+                                <Unlock className="w-12 h-12 text-green-600 dark:text-green-400" />
+                            ) : (
+                                <div className={`w-12 h-12 flex items-center justify-center rounded-full ${
+                                    isDark ? "bg-slate-600" : "bg-slate-300"
+                                }`}>
+                                    <div className={`w-6 h-6 rounded-full ${
+                                        isDark ? "bg-slate-400" : "bg-slate-600"
+                                    }`}></div>
+                                </div>
+                            )}
+                        </div>
+                        <p className={`text-2xl font-bold ${
+                            isUnlocked
+                                ? "text-green-700 dark:text-green-300"
+                                : isDark ? "text-slate-300" : "text-slate-700"
+                        }`}>
+                            {isUnlocked ? "Pintu Terbuka" : "Pintu Terkunci"}
+                        </p>
+                        {isUnlocked && (
+                            <p className={`text-sm mt-2 ${isDark ? "text-green-400" : "text-green-600"}`}>
+                                Akan terkunci otomatis dalam 5 detik
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Face Recognition Result */}
+                    {faceDetected && faceRecognitionResult && (
+                        <div className={`mb-6 p-4 rounded-xl ${
+                            faceRecognitionResult.recognized
+                                ? "bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700"
+                                : "bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700"
+                        }`}>
+                            <div className="flex items-center gap-3 mb-2">
+                                {faceRecognitionResult.recognized ? (
+                                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                ) : (
+                                    <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                                )}
+                                <p className={`font-semibold ${
+                                    faceRecognitionResult.recognized
+                                        ? "text-green-700 dark:text-green-300"
+                                        : "text-yellow-700 dark:text-yellow-300"
+                                }`}>
+                                    {faceRecognitionResult.recognized ? "✅ Wajah Terkenali!" : "⚠️ Wajah Tidak Terkenali"}
+                                </p>
+                            </div>
+                            {faceRecognitionResult.name && (
+                                <p className={`text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                                    👤 <strong>{faceRecognitionResult.name}</strong> ({(faceRecognitionResult.confidence! * 100).toFixed(1)}%)
+                                </p>
+                            )}
+                            <p className={`text-xs mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                                {faceRecognitionResult.message}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* PIN Fallback Input */}
+                    {showPinInput && (
+                        <div className={`mb-6 p-6 rounded-xl ${isDark ? "bg-orange-900/30 border border-orange-700" : "bg-orange-100 border border-orange-300"}`}>
+                            <div className="flex items-center gap-2 mb-4">
+                                <Lock className={`w-5 h-5 ${isDark ? "text-orange-400" : "text-orange-600"}`} />
+                                <h4 className={`font-semibold ${isDark ? "text-orange-300" : "text-orange-700"}`}>
+                                    Unlock dengan PIN
+                                </h4>
+                            </div>
+                            <p className={`text-sm mb-4 ${isDark ? "text-orange-200" : "text-orange-800"}`}>
+                                Wajah tidak dikenali. Masukkan PIN untuk membuka pintu.
+                            </p>
+                            <div className="flex gap-3">
+                                <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    maxLength={6}
+                                    placeholder="Masukkan PIN"
+                                    value={pinCode}
+                                    onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
+                                    className={`flex-1 px-4 py-2 rounded-lg border ${
+                                        isDark
+                                            ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                                            : "bg-white border-orange-300 text-slate-900 placeholder-slate-500"
+                                    } focus:outline-none focus:ring-2 focus:ring-orange-500`}
+                                />
+                                <button
+                                    onClick={handlePinUnlock}
+                                    disabled={pinLoading || !pinCode.trim()}
+                                    className={`px-6 py-2 rounded-lg font-semibold transition-all ${
+                                        pinLoading || !pinCode.trim()
+                                            ? isDark
+                                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                                : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                            : "bg-orange-600 hover:bg-orange-700 text-white"
+                                    }`}
+                                >
+                                    {pinLoading ? "Verifikasi..." : "Buka"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Unlock Buttons */}
+                    <div className="space-y-3">
+                        {/* Manual Unlock Button */}
+                        <button 
+                            onClick={handleDoorUnlock}
+                            disabled={loading}
+                            className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold text-lg transition-all ${
+                                loading
+                                    ? isDark
+                                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                    : "bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl"
+                            }`}
+                        >
+                            <Unlock className="w-6 h-6" />
+                            {loading ? "Membuka..." : "Buka Pintu (Manual)"}
+                        </button>
+                    </div>
+
+                    <div className={`mt-4 p-4 rounded-lg ${isDark ? "bg-slate-700/50" : "bg-slate-50"}`}>
+                        <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                            💡 <strong>Cara Kerja:</strong> Sistem secara otomatis mendeteksi wajah setiap 3 detik. Jika wajah dikenali → pintu otomatis terbuka. Jika wajah tidak dikenali → gunakan PIN sebagai fallback.
                         </p>
                     </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className={`border-b ${isDark ? "border-slate-700" : "border-slate-200"}`}>
-                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-                                        Waktu
-                                    </th>
-                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-                                        Metode
-                                    </th>
-                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-                                        User
-                                    </th>
-                                    <th className={`text-left py-3 px-4 font-semibold text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>
-                                        Status
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {logs.map(log => (
-                                    <tr 
-                                        key={log.id} 
-                                        className={`border-b transition-colors ${
-                                            isDark
-                                                ? "border-slate-700 hover:bg-slate-700/50"
-                                                : "border-slate-100 hover:bg-slate-50"
-                                        }`}
-                                    >
-                                        <td className={`py-3 px-4 text-sm ${isDark ? "text-slate-300" : "text-slate-900"}`}>
-                                            {new Date(log.timestamp).toLocaleString("id-ID")}
-                                        </td>
-                                        <td className={`py-3 px-4 text-sm font-medium ${isDark ? "text-slate-300" : "text-slate-900"}`}>
-                                            {log.method}
-                                        </td>
-                                        <td className={`py-3 px-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                                            {log.user_name || "-"}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm">
-                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
-                                                log.status === "success"
-                                                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                                                    : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                                            }`}>
-                                                {log.status === "success" && <Check className="w-4 h-4" />}
-                                                {log.status === "success" ? "Berhasil" : "Gagal"}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     );
 }
+
