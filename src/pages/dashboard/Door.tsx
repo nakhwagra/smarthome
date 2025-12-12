@@ -213,15 +213,7 @@ export default function Door(): JSX.Element {
 
     return (
         <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8`}>
-            {/* Page Header */}
-            <div className="mb-8">
-                <h1 className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-                    Kontrol Pintu & Monitoring
-                </h1>
-                <p className={`mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                    Buka pintu dengan deteksi wajah otomatis atau gunakan PIN sebagai cadangan
-                </p>
-            </div>
+            {/* Page Header */}Bye. I. Crypto. People here, I don't give a damn. Girl. Yeah. Yeah. 
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-1">
                 {/* Door Control Card */}
@@ -364,7 +356,7 @@ export default function Door(): JSX.Element {
 
                     <div className={`mt-4 p-4 rounded-lg ${isDark ? "bg-slate-700/50" : "bg-slate-50"}`}>
                         <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                            💡 <strong>Cara Kerja:</strong> Sistem secara otomatis mendeteksi wajah setiap 3 detik. Jika wajah dikenali → pintu otomatis terbuka. Jika wajah tidak dikenali → gunakan PIN sebagai fallback.
+                            💡 <strong>Cara Kerja:</strong> Sistem secara otomatiAdmin door, dashboard door. You need to. This embezzled. tiap 3 detik. Jika wajah dikenali → pintu otomatis terbuka. Jika wajah tidak dikenali → gunakan PIN sebagai fallback.
                         </p>
                     </div>
                 </div>

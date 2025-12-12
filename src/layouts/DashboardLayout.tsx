@@ -60,16 +60,16 @@ export default function DashboardLayout(): JSX.Element {
 
     return (
         <div className={`min-h-screen ${isDark ? "dark" : ""}`}>
-            <div className="flex h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+            <div className="flex h-screen transition-colors duration-300 bg-slate-50 dark:bg-slate-900">
                 {/* Sidebar */}
                 <aside className={`${sidebarOpen ? "w-64" : "w-20"} bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 overflow-y-auto`}>
                     {/* Logo */}
-                    <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 dark:border-slate-700">
                         <div className="flex items-center gap-3">
                             <img
                                 src={isDark ? whiteLogo : blackLogo}
                                 alt="SmartHome logo"
-                                className="h-8 w-auto object-contain"
+                                className="object-contain w-auto h-8"
                             />
                             {sidebarOpen && (
                                 <h1 className="text-xl font-bold text-slate-900 dark:text-white">SHIELD</h1>
@@ -77,7 +77,7 @@ export default function DashboardLayout(): JSX.Element {
                         </div>
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                         >
                             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
                         </button>
@@ -86,7 +86,7 @@ export default function DashboardLayout(): JSX.Element {
                     {/* User Info */}
                     {sidebarOpen && (
                         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                            <p className="font-semibold text-slate-900 dark:text-white text-sm">{user?.name || "User"}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{user?.name || "User"}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
                             <span className={`inline-block mt-2 px-2 py-1 text-xs font-semibold rounded-full ${
                                 isAdmin ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300" : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
@@ -121,7 +121,7 @@ export default function DashboardLayout(): JSX.Element {
                     {isAdmin && sidebarOpen && (
                         <>
                             <div className="px-3 py-2">
-                                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Admin</h3>
+                                <h3 className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400">Admin</h3>
                             </div>
                             <nav className="p-3 space-y-1">
                                 {adminItems.map(item => (
@@ -145,21 +145,23 @@ export default function DashboardLayout(): JSX.Element {
                     )}
 
                     {/* Logout */}
-                    <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                        <button
-                            onClick={handleLogout}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm ${!sidebarOpen && "justify-center"}`}
-                        >
-                            <LogOut size={20} />
-                            {sidebarOpen && <span>Logout</span>}
-                        </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 dark:border-slate-700 dark:bg-slate-800">
+                        <div className={`p-3 ${sidebarOpen ? "flex" : "grid"}`}>
+                            <button
+                                onClick={handleLogout}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm ${sidebarOpen ? "justify-start" : "justify-center"}`}
+                            >
+                                <LogOut size={20} />
+                                {sidebarOpen && <span>Logout</span>}
+                            </button>
+                        </div>
                     </div>
                 </aside>
 
                 {/* Main Content */}
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex flex-col flex-1 overflow-hidden">
                     {/* Top Header */}
-                    <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6">
+                    <header className="flex items-center justify-between h-16 px-6 bg-white border-b dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                         <div>
                             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                                 {location.pathname.includes("pending") && "Pending Users"}
@@ -173,7 +175,7 @@ export default function DashboardLayout(): JSX.Element {
                         </div>
                         <button
                             onClick={toggleTheme}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                            className="p-2 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                             title={isDark ? "Light Mode" : "Dark Mode"}
                         >
                             {isDark ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-slate-700" />}
