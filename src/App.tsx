@@ -1,45 +1,9 @@
-// import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from '/vite.svg'
-// import './App.css'
-
-// function App() {
-//   const [count, setCount] = useState(0)
-
-//   return (
-//     <>
-//       <div>
-//         <a href="https://vite.dev" target="_blank">
-//           <img src={viteLogo} className="logo" alt="Vite logo" />
-//         </a>
-//         <a href="https://react.dev" target="_blank">
-//           <img src={reactLogo} className="logo react" alt="React logo" />
-//         </a>
-//       </div>
-//       <h1>Vite + React</h1>
-//       <div className="card">
-//         <button onClick={() => setCount((count) => count + 1)}>
-//           count is {count}
-//         </button>
-//         <p>
-//           Edit <code>src/App.tsx</code> and save to test HMR
-//         </p>
-//       </div>
-//       <p className="read-the-docs">
-//         Click on the Vite and React logos to learn more
-//       </p>
-//     </>
-//   )
-// }
-
-// export default App
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
 // Auth Pages
-import Login from "./pages/Login.tsx";
-import Register from "./pages/Register.tsx";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 // Dashboard Layout
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -53,6 +17,7 @@ import AccessLogs from "./pages/AccessLogs";
 
 // Admin Pages
 import PendingUsers from "./pages/admin/PendingUsers";
+import UserManagement from "./pages/admin/UserManagement";
 import Settings from "./pages/admin/Settings";
 
 // Protected Route Component
@@ -64,15 +29,15 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
 // Admin Route Component
 function AdminRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated, user } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
-  
+
   if (user?.role !== "admin") {
     return <Navigate to="/dashboard" />;
   }
-  
+
   return children;
 }
 
@@ -92,13 +57,22 @@ function App() {
         <Route index element={<Home />} />
         <Route path="door" element={<Door />} />
         <Route path="devices" element={<DevicesPage />} />
-        <Route path="sensors" element={<Sensors />} />
         <Route path="logs" element={<AccessLogs />} />
-        
+
         {/* Admin Only Routes */}
+        <Route path="sensors" element={
+          <AdminRoute>
+            <Sensors />
+          </AdminRoute>
+        } />
         <Route path="admin/pending" element={
           <AdminRoute>
             <PendingUsers />
+          </AdminRoute>
+        } />
+        <Route path="admin/users" element={
+          <AdminRoute>
+            <UserManagement />
           </AdminRoute>
         } />
         <Route path="admin/settings" element={
@@ -110,7 +84,7 @@ function App() {
 
       {/* Redirect root to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" />} />
-      
+
       {/* Catch all - redirect to dashboard */}
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>

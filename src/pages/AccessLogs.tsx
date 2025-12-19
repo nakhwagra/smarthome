@@ -1,5 +1,5 @@
 // src/pages/AccessLogs.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Shield, Clock, CheckCircle, XCircle, User, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import accessLogApi, { AccessLog } from "../api/accessLogApi";
 import { useAuth } from "../context/AuthContext";
@@ -17,28 +17,14 @@ export default function AccessLogs(): JSX.Element {
 
     const isAdmin = user?.role === "admin";
 
-    useEffect(() => {
-        fetchLogs();
-    }, []);
-
-    useEffect(() => {
-        applyFilter();
-    }, [statusFilter, logs]);
-
-    useEffect(() => {
-        setCurrentPage(1); // Reset to page 1 when filter changes
-    }, [statusFilter, itemsPerPage]);
-
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
             let response;
             
             if (isAdmin) {
-                // Admin: Get all logs
                 response = await accessLogApi.getAll();
             } else {
-                // User: Get only their logs
                 const userId = user?.user_id || user?.id;
                 if (!userId) {
                     console.error("User ID not found");
@@ -55,15 +41,27 @@ export default function AccessLogs(): JSX.Element {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAdmin, user]);
 
-    const applyFilter = () => {
+    const applyFilter = useCallback(() => {
         if (statusFilter === "all") {
             setFilteredLogs(logs);
         } else {
             setFilteredLogs(logs.filter(log => log.status === statusFilter));
         }
-    };
+    }, [statusFilter, logs]);
+
+    useEffect(() => {
+        fetchLogs();
+    }, [fetchLogs]);
+
+    useEffect(() => {
+        applyFilter();
+    }, [applyFilter]);
+
+    useEffect(() => {
+        setCurrentPage(1); // Reset to page 1 when filter changes
+    }, [statusFilter, itemsPerPage]);
 
     const getMethodBadge = (method: string) => {
         const colors: Record<string, string> = {

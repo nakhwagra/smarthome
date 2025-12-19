@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Camera, User, Mail, Lock, AlertCircle, CheckCircle } from "lucide-react";
 import authApi from "../../api/authApi";
@@ -34,19 +34,19 @@ export default function Register() {
                 setStream(mediaStream);
                 setIsCameraOpen(true);
             }
-        } catch (err) {
+        } catch {
             setError("Failed to access camera. Please allow camera permissions.");
         }
     };
 
     // Close camera
-    const closeCamera = () => {
+    const closeCamera = useCallback(() => {
         if (stream) {
             stream.getTracks().forEach((track) => track.stop());
             setStream(null);
             setIsCameraOpen(false);
         }
-    };
+    }, [stream]);
 
     // Capture photo
     const capturePhoto = () => {
@@ -109,8 +109,9 @@ export default function Register() {
                     navigate("/login");
                 }, 3000);
             }
-        } catch (err: any) {
-            setError(err.response?.data?.error || "Registration failed. Please try again.");
+        } catch (err: unknown) {
+            const errObj = err as { response?: { data?: { error?: string } } };
+            setError(errObj.response?.data?.error || "Registration failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -121,7 +122,7 @@ export default function Register() {
         return () => {
             closeCamera();
         };
-    }, []);
+    }, [closeCamera]);
 
     if (success) {
         return (

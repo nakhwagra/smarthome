@@ -1,4 +1,3 @@
-// src/pages/Register.tsx
 import React, { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Loader } from "lucide-react";
@@ -40,7 +39,7 @@ export default function Register(): JSX.Element {
                 videoRef.current.play();
             }
             streamRef.current = stream;
-        } catch (error) {
+        } catch {
             setErr("Gagal mengakses kamera. Pastikan izin kamera diaktifkan.");
             setCapturing(false);
         }
@@ -136,8 +135,9 @@ export default function Register(): JSX.Element {
                 navigate("/login");
             }, 3000);
 
-        } catch (error: any) {
-            const msg = error?.response?.data?.message || error?.message || "Terjadi kesalahan";
+        } catch (error: unknown) {
+            const errObj = error as { response?: { data?: { message?: string } }; message?: string };
+            const msg = errObj?.response?.data?.message || errObj?.message || "Terjadi kesalahan";
             setErr(msg);
             setLoading(false);
         }
@@ -196,24 +196,24 @@ export default function Register(): JSX.Element {
                 }`}
             >
                 {/* Left Panel - Gradient Branding */}
-                <div className="md:col-span-2 p-8 md:p-12 flex flex-col justify-between bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 text-white relative overflow-hidden">
-                    <div className="absolute top-20 right-10 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl" />
-                    <div className="absolute bottom-20 left-10 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl" />
+                <div className="relative flex flex-col justify-between p-8 overflow-hidden text-white md:col-span-2 md:p-12 bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900">
+                    <div className="absolute w-64 h-64 rounded-full top-20 right-10 bg-indigo-500/20 blur-3xl" />
+                    <div className="absolute rounded-full bottom-20 left-10 w-80 h-80 bg-purple-600/10 blur-3xl" />
 
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                                <img src={logo} alt="SHIELD logo" className="h-6 w-auto object-contain" />
+                            <div className="flex items-center justify-center w-8 h-8 bg-white rounded-lg">
+                                <img src={logo} alt="SHIELD logo" className="object-contain w-auto h-6" />
                             </div>
                             <span className="text-xl font-semibold">SHIELD</span>
                         </div>
                     </div>
 
                     <div className="relative z-10">
-                        <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
+                        <h1 className="mb-4 text-3xl font-bold leading-tight md:text-4xl">
                             Start your smart<br />home journey today.
                         </h1>
-                        <p className="text-white/80 text-sm">
+                        <p className="text-sm text-white/80">
                             Create your SmartHome account and manage your devices seamlessly.
                         </p>
                     </div>
@@ -334,7 +334,7 @@ export default function Register(): JSX.Element {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                                    className="absolute -translate-y-1/2 right-4 top-1/2"
                                     disabled={loading}
                                 >
                                     {showPassword ? (
@@ -371,7 +371,7 @@ export default function Register(): JSX.Element {
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                                    className="absolute -translate-y-1/2 right-4 top-1/2"
                                     disabled={loading}
                                 >
                                     {showConfirmPassword ? (
@@ -419,7 +419,7 @@ export default function Register(): JSX.Element {
                                         <button
                                             type="button"
                                             onClick={captureFace}
-                                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-semibold transition-all"
+                                            className="flex-1 px-4 py-2 font-semibold text-white transition-all bg-indigo-600 rounded-lg hover:bg-indigo-700"
                                         >
                                             Capture
                                         </button>
@@ -447,7 +447,7 @@ export default function Register(): JSX.Element {
                                     <img
                                         src={faceImage}
                                         alt="Captured face"
-                                        className="w-full h-48 object-cover rounded mb-3"
+                                        className="object-cover w-full h-48 mb-3 rounded"
                                     />
                                     <button
                                         type="button"

@@ -1,8 +1,6 @@
-// src/pages/dashboard/Door.tsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Unlock, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
-import websocketService, { WS_TYPES } from "../../services/websocketService";
 import { useTheme } from "../../context/ThemeContext";
 
 const PYTHON_SERVICE_URL = "http://localhost:5001";
@@ -10,7 +8,6 @@ const PYTHON_SERVICE_URL = "http://localhost:5001";
 export default function Door(): JSX.Element {
     const [doorStatus, setDoorStatus] = useState<string>("locked");
     const [loading, setLoading] = useState(false);
-    const [recognizing, setRecognizing] = useState(false);
     const [faceDetected, setFaceDetected] = useState(false);
     const [faceRecognitionResult, setFaceRecognitionResult] = useState<{
         recognized: boolean;
@@ -27,24 +24,7 @@ export default function Door(): JSX.Element {
 
     const ESP32_CAM_IP = "10.124.88.102";
 
-    useEffect(() => {
-        fetchDoorStatus();
-        startAutoRecognition(); // Start auto face recognition
-
-        // WebSocket listener untuk door status
-        const handleDoorStatus = (data: { status: string }) => {
-            setDoorStatus(data.status);
-        };
-
-        websocketService.on(WS_TYPES.DOOR_STATUS, handleDoorStatus);
-
-        return () => {
-            websocketService.off(WS_TYPES.DOOR_STATUS, handleDoorStatus);
-            stopAutoRecognition();
-        };
-    }, []);
-
-    const fetchDoorStatus = async () => {
+    const fetchDoorStatus = useCallback(async () => {
         try {
             const res = await axiosClient.get("/device/door/latest");
             if (res.data.success && res.data.data) {
@@ -53,9 +33,9 @@ export default function Door(): JSX.Element {
         } catch (err) {
             console.error("Failed to fetch door status:", err);
         }
-    };
+    }, []);
 
-    const handleDoorUnlock = async () => {
+    const handleDoorUnlock = useCallback(async () => {
         setLoading(true);
         try {
             await axiosClient.post("/control/door", { action: "unlock" });
@@ -72,10 +52,9 @@ export default function Door(): JSX.Element {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const captureAndRecognizeFace = async () => {
-        setRecognizing(true);
+    const captureAndRecognizeFace = useCallback(async () => {
         setFaceRecognitionResult(null);
         
         try {
@@ -84,7 +63,7 @@ export default function Door(): JSX.Element {
             
             if (!frameResponse.ok) {
                 console.error("Failed to fetch frame:", frameResponse.status);
-                setRecognizing(false);
+                // recognition finished
                 return;
             }
 
@@ -93,7 +72,6 @@ export default function Door(): JSX.Element {
 
             reader.onload = async () => {
                 const base64Image = reader.result as string;
-                console.log("📸 Captured frame, base64 length:", base64Image.length);
 
                 // Send LANGSUNG ke Python service untuk recognize
                 try {
@@ -106,7 +84,6 @@ export default function Door(): JSX.Element {
                     });
 
                     const result = await recognizeResponse.json();
-                    console.log("🔍 Recognition result:", result);
 
                     if (result.success) {
                         setFaceRecognitionResult({
@@ -120,7 +97,6 @@ export default function Door(): JSX.Element {
                             // Face recognized → otomatis buka pintu dalam 1 detik
                             setFaceDetected(true);
                             setShowPinInput(false);
-                            console.log("✅ Face recognized! Opening door...");
                             
                             setTimeout(() => {
                                 handleDoorUnlock();
@@ -129,32 +105,29 @@ export default function Door(): JSX.Element {
                             // Face detected tapi not recognized → show PIN
                             setFaceDetected(true);
                             setShowPinInput(true);
-                            console.log("⚠️ Unknown face detected - showing PIN fallback");
                         }
                     } else {
-                        console.error("❌ Recognition failed:", result);
+                        console.error(" Recognition failed:", result);
                     }
                 } catch (err) {
-                    console.error("❌ Face recognition error:", err);
+                    console.error(" Face recognition error:", err);
                 }
 
-                setRecognizing(false);
+                // recognition finished
             };
 
             reader.onerror = () => {
-                console.error("❌ FileReader error");
-                setRecognizing(false);
+                console.error(" FileReader error");
             };
 
             reader.readAsDataURL(blob);
         } catch (err) {
-            console.error("❌ Capture error:", err);
+            console.error(" Capture error:", err);
             setFaceDetected(false);
-            setRecognizing(false);
         }
-    };
+    }, [handleDoorUnlock]);
 
-    const startAutoRecognition = () => {
+    const startAutoRecognition = useCallback(() => {
         // Auto-recognize face setiap 3 detik
         recognitionIntervalRef.current = setInterval(() => {
             const now = Date.now();
@@ -164,15 +137,27 @@ export default function Door(): JSX.Element {
                 captureAndRecognizeFace();
             }
         }, 3000);
-        console.log("🔍 Auto-recognition started (every 3 seconds)");
-    };
+    }, [captureAndRecognizeFace]);
 
-    const stopAutoRecognition = () => {
+    const stopAutoRecognition = useCallback(() => {
         if (recognitionIntervalRef.current) {
             clearInterval(recognitionIntervalRef.current);
             recognitionIntervalRef.current = null;
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchDoorStatus();
+        startAutoRecognition();
+
+        // Polling door status every 3 seconds instead of WebSocket
+        const interval = setInterval(fetchDoorStatus, 3000);
+
+        return () => {
+            clearInterval(interval);
+            stopAutoRecognition();
+        };
+    }, [fetchDoorStatus, startAutoRecognition, stopAutoRecognition]);
 
     const handlePinUnlock = async () => {
         if (!pinCode.trim()) {
@@ -213,7 +198,7 @@ export default function Door(): JSX.Element {
 
     return (
         <div className={`min-h-screen ${isDark ? "bg-slate-900" : "bg-slate-50"} p-4 sm:p-6 lg:p-8`}>
-            {/* Page Header */}Bye. I. Crypto. People here, I don't give a damn. Girl. Yeah. Yeah. 
+            {/* Page Header */}
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-1">
                 {/* Door Control Card */}
@@ -222,9 +207,6 @@ export default function Door(): JSX.Element {
                         <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
                             Kontrol Pintu
                         </h3>
-                        <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                            Pintu akan otomatis terkunci kembali setelah 5 detik
-                        </p>
                     </div>
 
                     {/* Status Display */}
@@ -278,7 +260,7 @@ export default function Door(): JSX.Element {
                                         ? "text-green-700 dark:text-green-300"
                                         : "text-yellow-700 dark:text-yellow-300"
                                 }`}>
-                                    {faceRecognitionResult.recognized ? "✅ Wajah Terkenali!" : "⚠️ Wajah Tidak Terkenali"}
+                                    {faceRecognitionResult.recognized ? " Wajah Terkenali!" : " Wajah Tidak Terkenali"}
                                 </p>
                             </div>
                             {faceRecognitionResult.name && (
@@ -350,14 +332,8 @@ export default function Door(): JSX.Element {
                             }`}
                         >
                             <Unlock className="w-6 h-6" />
-                            {loading ? "Membuka..." : "Buka Pintu (Manual)"}
+                            {loading ? "Membuka..." : "Buka Pintu"}
                         </button>
-                    </div>
-
-                    <div className={`mt-4 p-4 rounded-lg ${isDark ? "bg-slate-700/50" : "bg-slate-50"}`}>
-                        <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                            💡 <strong>Cara Kerja:</strong> Sistem secara otomatiAdmin door, dashboard door. You need to. This embezzled. tiap 3 detik. Jika wajah dikenali → pintu otomatis terbuka. Jika wajah tidak dikenali → gunakan PIN sebagai fallback.
-                        </p>
                     </div>
                 </div>
             </div>

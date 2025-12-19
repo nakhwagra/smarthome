@@ -1,10 +1,9 @@
-// src/layouts/DashboardLayout.tsx
+
 import React, { useEffect, useState } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import websocketService from "../services/websocketService";
-import { Menu, X, Sun, Moon, LogOut, Home, Lock, Lightbulb, BarChart3, FileText, Users, Settings } from "lucide-react";
+import { Menu, X, Sun, Moon, LogOut, Home, Lock, Lightbulb, BarChart3, FileText, Users, Settings, UserCog } from "lucide-react";
 import blackLogo from "../assets/black.png";
 import whiteLogo from "../assets/white.png";
 
@@ -15,7 +14,6 @@ export default function DashboardLayout(): JSX.Element {
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
-    // Fallback to localStorage if context user incomplete
     const user = ctxUser || (() => {
         try {
             const stored = localStorage.getItem("auth_user");
@@ -31,11 +29,6 @@ export default function DashboardLayout(): JSX.Element {
             return;
         }
 
-        websocketService.connect();
-
-        return () => {
-            websocketService.disconnect();
-        };
     }, [isAuthenticated, navigate]);
 
     const handleLogout = () => {
@@ -49,12 +42,16 @@ export default function DashboardLayout(): JSX.Element {
         { path: "/dashboard", label: "Home", icon: Home },
         { path: "/dashboard/door", label: "Door", icon: Lock },
         { path: "/dashboard/devices", label: "Devices", icon: Lightbulb },
-        { path: "/dashboard/sensors", label: "Sensors", icon: BarChart3 },
         { path: "/dashboard/logs", label: "Logs", icon: FileText },
+    ];
+
+    const adminMenuItems = [
+        { path: "/dashboard/sensors", label: "Sensors", icon: BarChart3 },
     ];
 
     const adminItems = [
         { path: "/dashboard/admin/pending", label: "Pending Users", icon: Users },
+        { path: "/dashboard/admin/users", label: "User Management", icon: UserCog },
         { path: "/dashboard/admin/settings", label: "Settings", icon: Settings },
     ];
 
@@ -88,9 +85,8 @@ export default function DashboardLayout(): JSX.Element {
                         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
                             <p className="text-sm font-semibold text-slate-900 dark:text-white">{user?.name || "User"}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
-                            <span className={`inline-block mt-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                                isAdmin ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300" : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                            }`}>
+                            <span className={`inline-block mt-2 px-2 py-1 text-xs font-semibold rounded-full ${isAdmin ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300" : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                                }`}>
                                 {user?.role || "Member"}
                             </span>
                         </div>
@@ -103,6 +99,24 @@ export default function DashboardLayout(): JSX.Element {
                                 key={item.path}
                                 to={item.path}
                                 end={item.path === "/dashboard"}
+                                className={({ isActive }) => `
+                                    flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm
+                                    ${isActive
+                                        ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold"
+                                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    }
+                                `}
+                            >
+                                <item.icon size={20} className="flex-shrink-0" />
+                                {sidebarOpen && <span>{item.label}</span>}
+                            </NavLink>
+                        ))}
+
+                        {/* Admin-only menu items (like Sensors) */}
+                        {isAdmin && adminMenuItems.map(item => (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
                                 className={({ isActive }) => `
                                     flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm
                                     ${isActive
@@ -165,6 +179,7 @@ export default function DashboardLayout(): JSX.Element {
                         <div>
                             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                                 {location.pathname.includes("pending") && "Pending Users"}
+                                {location.pathname.includes("admin/users") && "User Management"}
                                 {location.pathname.includes("settings") && "Settings"}
                                 {location.pathname.includes("door") && "Door Control"}
                                 {location.pathname.includes("devices") && "Devices"}

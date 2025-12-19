@@ -72,8 +72,8 @@ function MiniSparkline({ values, color, yMin, yMax, yTicks }) {
 
 function StatCard({ title, icon: Icon, value, unit, trendLabel, lastUpdated, color, chartValues, yMin, yMax, yTicks }) {
     return (
-        <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="flex flex-col h-full p-5 bg-white border shadow-sm rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <div className={`p-2.5 rounded-lg ${color.bg}`}>
                         <Icon className={`h-5 w-5 ${color.icon}`} />
@@ -88,11 +88,11 @@ function StatCard({ title, icon: Icon, value, unit, trendLabel, lastUpdated, col
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 text-right leading-tight min-w-[90px]">{lastUpdated}</div>
             </div>
-            <div className="mt-auto flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 mt-auto">
                 <div className="w-2/3">
                     <MiniSparkline values={chartValues} color={color.stroke} yMin={yMin} yMax={yMax} yTicks={yTicks} />
                 </div>
-                <div className="w-1/3 text-right text-sm font-medium text-slate-600 dark:text-slate-300">
+                <div className="w-1/3 text-sm font-medium text-right text-slate-600 dark:text-slate-300">
                     {trendLabel}
                 </div>
             </div>
@@ -190,7 +190,7 @@ export default function Sensors() {
                             type="checkbox"
                             checked={autoRefresh}
                             onChange={(e) => setAutoRefresh(e.target.checked)}
-                            className="h-4 w-4 cursor-pointer rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="w-4 h-4 text-indigo-600 rounded cursor-pointer border-slate-300 focus:ring-indigo-500"
                         />
                     </label>
                     <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
@@ -208,21 +208,21 @@ export default function Sensors() {
                     </label>
                     <button
                         onClick={() => fetchSensors()}
-                        className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-500"
                     >
-                        <RefreshCw className="h-4 w-4" /> Refresh
+                        <RefreshCw className="w-4 h-4" /> Refresh
                     </button>
                 </div>
             </div>
 
             {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="px-4 py-3 text-sm text-red-700 border border-red-200 rounded-lg bg-red-50">
                     {error}
                 </div>
             )}
 
             {loading ? (
-                <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <div className="p-6 text-center bg-white border shadow-sm rounded-xl border-slate-200 text-slate-500 dark:border-slate-700 dark:bg-slate-800">
                     Loading sensor data...
                 </div>
             ) : (
@@ -320,8 +320,8 @@ export default function Sensors() {
                     color: "text-violet-600",
                     file: "light.csv",
                 }].map((item) => (
-                    <div key={item.title} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                        <div className="mb-3 flex items-center justify-between">
+                    <div key={item.title} className="p-4 bg-white border shadow-sm rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800">
+                        <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2 text-slate-800 dark:text-white">
                                 <item.icon className={`h-5 w-5 ${item.color}`} />
                                 <span className="font-semibold">{item.title}</span>
@@ -333,7 +333,7 @@ export default function Sensors() {
                                 Export CSV
                             </button>
                         </div>
-                        <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div className="overflow-hidden border rounded-lg border-slate-200 dark:border-slate-700">
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-50 text-slate-600 dark:bg-slate-700 dark:text-slate-200">
                                     <tr>

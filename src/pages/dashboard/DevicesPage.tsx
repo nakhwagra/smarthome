@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Lightbulb, Wind, Power, Activity } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
-import websocketService, { WS_TYPES } from "../../services/websocketService";
+import { mqttService } from "../../services/mqttService";
 import { useTheme } from "../../context/ThemeContext";
 
 interface DeviceState {
@@ -21,17 +21,33 @@ export default function DevicesPage(): JSX.Element {
     const { isDark } = useTheme();
 
     useEffect(() => {
-        fetchDeviceStatus();
+        let isMounted = true;
 
-        const handleLampStatus = (data: { status: string }) => setDevices(prev => ({ ...prev, lamp: data.status }));
-        const handleCurtainStatus = (data: { status: string }) => setDevices(prev => ({ ...prev, curtain: data.status }));
+        const handleLampStatus = (data: { status: string }) => {
+            if (isMounted) setDevices(prev => ({ ...prev, lamp: data.status }));
+        };
+        const handleCurtainStatus = (data: { status: string }) => {
+            if (isMounted) setDevices(prev => ({ ...prev, curtain: data.status }));
+        };
 
-        websocketService.on(WS_TYPES.LAMP_STATUS, handleLampStatus);
-        websocketService.on(WS_TYPES.CURTAIN_STATUS, handleCurtainStatus);
+        const connectAndSubscribe = async () => {
+            await fetchDeviceStatus();
+            try {
+                await mqttService.connect();
+                mqttService.on('lamp_status', handleLampStatus);
+                mqttService.on('curtain_status', handleCurtainStatus);
+            } catch (err) {
+                console.error("Failed to connect MQTT:", err);
+            }
+        };
+
+        connectAndSubscribe();
 
         return () => {
-            websocketService.off(WS_TYPES.LAMP_STATUS, handleLampStatus);
-            websocketService.off(WS_TYPES.CURTAIN_STATUS, handleCurtainStatus);
+            isMounted = false;
+            mqttService.off('lamp_status', handleLampStatus);
+            mqttService.off('curtain_status', handleCurtainStatus);
+            mqttService.disconnect();
         };
     }, []);
 
@@ -111,7 +127,7 @@ export default function DevicesPage(): JSX.Element {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {/* Lamp card */}
                 <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6`}>
                     <div className="flex items-center gap-4 mb-6">

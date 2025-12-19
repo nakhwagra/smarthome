@@ -15,7 +15,6 @@ export default function Login(): JSX.Element {
     const [password, setPassword] = useState("");
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const [remember, setRemember] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const submit = async (e: React.FormEvent) => {

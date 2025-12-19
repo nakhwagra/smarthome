@@ -1,7 +1,6 @@
-﻿// src/pages/Dashboard.tsx
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import SensorWidget from "../components/SensorWidget";
-import useWebSocket from "../hooks/useWebSocket";
+import axiosClient from "../api/axiosClient";
 
 interface SensorData {
     temperature: number;
@@ -15,44 +14,59 @@ export default function Dashboard(): JSX.Element {
         temperature: 0,
         humidity: 0,
         light: 0,
-        gas_ppm: 0
+        gas_ppm: 0,
     });
+    const [connectionStatus, setConnectionStatus] = useState("Connecting...");
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastUpdate, setLastUpdate] = useState("-");
 
-    const [connectionStatus, setConnectionStatus] = useState<string>("Connecting...");
-    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-    const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
-
-    const lastMessage = useWebSocket("ws://192.168.1.54:8080/api/ws");
-
-    const fetchSensorData = () => {
+    const fetchSensorData = async () => {
         setIsRefreshing(true);
+        try {
+            const res = await axiosClient.get("/dashboard/initial");
+            const sensorData = res.data?.data?.sensors;
+            if (sensorData) {
+                setSensors({
+                    temperature: Number(sensorData.temperature ?? 0),
+                    humidity: Number(sensorData.humidity ?? 0),
+                    light: Number(sensorData.light ?? 0),
+                    gas_ppm: Number(sensorData.gas ?? sensorData.gas_ppm ?? 0),
+                });
+                setConnectionStatus("Connected");
+                setLastUpdate(new Date().toLocaleTimeString());
+                return;
+            }
+            throw new Error("Invalid dashboard response");
+        } catch {
+            // Fallback ke endpoint terpisah jika aggregated tidak ada
+            try {
+                const [tempRes, humidRes, gasRes, lightRes] = await Promise.all([
+                    axiosClient.get("/sensor/temperature"),
+                    axiosClient.get("/sensor/humidity"),
+                    axiosClient.get("/sensor/gas"),
+                    axiosClient.get("/sensor/light"),
+                ]);
 
-        Promise.all([
-            fetch("http://192.168.1.54:8080/api/sensor/temperature").then((r) => r.ok ? r.json() : Promise.reject(r)),
-            fetch("http://192.168.1.54:8080/api/sensor/humidity").then((r) => r.ok ? r.json() : Promise.reject(r)),
-            fetch("http://192.168.1.54:8080/api/sensor/gas").then((r) => r.ok ? r.json() : Promise.reject(r)),
-            fetch("http://192.168.1.54:8080/api/sensor/light").then((r) => r.ok ? r.json() : Promise.reject(r)),
-        ])
-            .then(([temp, humid, gas, light]: any) => {
-                const t = temp?.data?.[0]?.temperature ?? temp.temperature ?? 0;
-                const h = humid?.data?.[0]?.humidity ?? humid.humidity ?? 0;
-                const g = gas?.data?.[0]?.ppm ?? gas.ppm ?? 0;
-                const l = light?.data?.[0]?.lux ?? light.lux ?? 0;
+                const latestTemp = tempRes.data?.data?.[0]?.temperature ?? 0;
+                const latestHumid = humidRes.data?.data?.[0]?.humidity ?? 0;
+                const latestGasRaw = gasRes.data?.data?.[0] ?? {};
+                const latestGas = latestGasRaw.ppm_value ?? latestGasRaw.ppm ?? 0;
+                const latestLight = lightRes.data?.data?.[0]?.lux ?? lightRes.data?.data?.[0]?.light ?? 0;
 
                 setSensors({
-                    temperature: Number(t),
-                    humidity: Number(h),
-                    gas_ppm: Number(g),
-                    light: Number(l),
+                    temperature: Number(latestTemp),
+                    humidity: Number(latestHumid),
+                    light: Number(latestLight),
+                    gas_ppm: Number(latestGas),
                 });
-
                 setConnectionStatus("Connected");
-            })
-            .catch(() => setConnectionStatus("Connection failed"))
-            .finally(() => {
-                setIsRefreshing(false);
                 setLastUpdate(new Date().toLocaleTimeString());
-            });
+            } catch {
+                setConnectionStatus("Connection failed");
+            }
+        } finally {
+            setIsRefreshing(false);
+        }
     };
 
     useEffect(() => {
@@ -60,26 +74,6 @@ export default function Dashboard(): JSX.Element {
         const interval = setInterval(fetchSensorData, 5000);
         return () => clearInterval(interval);
     }, []);
-
-    useEffect(() => {
-        if (!lastMessage) return;
-
-        let payload: any = null;
-        try {
-            payload = JSON.parse(lastMessage);
-        } catch {
-            return;
-        }
-
-        setLastUpdate(new Date().toLocaleTimeString());
-
-        setSensors((prev) => ({
-            temperature: payload.temperature ?? prev.temperature,
-            humidity: payload.humidity ?? prev.humidity,
-            gas_ppm: payload.gas_ppm ?? payload.ppm ?? prev.gas_ppm,
-            light: payload.light ?? payload.lux ?? prev.light,
-        }));
-    }, [lastMessage]);
 
     return (
         <div className="min-h-screen p-6 bg-[#0c0c0d] text-gray-200">
@@ -89,18 +83,18 @@ export default function Dashboard(): JSX.Element {
                 rounded-xl border border-gray-800 shadow-lg p-6 mb-6
                 bg-[#141416] bg-opacity-70 backdrop-blur-md
             ">
-                <div className="flex flex-col md:flex-row justify-between items-center">
+                <div className="flex flex-col items-center justify-between md:flex-row">
 
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-100 tracking-tight drop-shadow">
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-100 drop-shadow">
                             IoT Smart Home Dashboard
                         </h1>
-                        <p className="text-sm text-gray-400 mt-1">
-                            Real-time monitoring of sensor data
+                        <p className="mt-1 text-sm text-gray-400">
+                            Monitoring sensor melalui REST API
                         </p>
                     </div>
 
-                    <div className="text-right mt-4 md:mt-0">
+                    <div className="mt-4 text-right md:mt-0">
                         <div className="flex items-center justify-end gap-2">
                             <span
                                 className={`
@@ -115,10 +109,10 @@ export default function Dashboard(): JSX.Element {
                         </div>
 
                         {isRefreshing && (
-                            <p className="text-xs text-blue-400 mt-1">Refreshing...</p>
+                            <p className="mt-1 text-xs text-blue-400">Refreshing...</p>
                         )}
 
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="mt-1 text-xs text-gray-500">
                             Last update: {lastUpdate}
                         </p>
                     </div>
@@ -127,7 +121,7 @@ export default function Dashboard(): JSX.Element {
             </div>
 
             {/* SENSOR GRID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <SensorWidget
                     title="Temperature"
                     value={sensors.temperature}
@@ -168,11 +162,11 @@ export default function Dashboard(): JSX.Element {
                     bg-[#141416] bg-opacity-70 backdrop-blur-md
                 "
             >
-                <h3 className="text-lg font-semibold text-gray-100 mb-4">
+                <h3 className="mb-4 text-lg font-semibold text-gray-100">
                     Sensor Description
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
                     <div>
                         <p className="font-semibold text-gray-200">DHT22 Sensor</p>
                         <p className="text-gray-500">Temperature & Humidity</p>
@@ -189,8 +183,8 @@ export default function Dashboard(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="mt-5 border-t border-gray-700 pt-4 text-xs text-gray-500">
-                    Auto-refresh every 5 seconds • WebSocket: ws://192.168.1.54:8080/api/ws
+                <div className="pt-4 mt-5 text-xs text-gray-500 border-t border-gray-700">
+                    Auto-refresh every 5 seconds via REST API
                 </div>
             </div>
         </div>

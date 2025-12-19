@@ -19,7 +19,6 @@ export default function PendingUsers(): JSX.Element {
         try {
             const res = await adminApi.getPendingUsers();
             if (res.data.success && res.data.data) {
-                console.log("📋 Pending users data:", res.data.data);
                 setUsers(res.data.data);
             }
         } catch (err) {
@@ -30,7 +29,6 @@ export default function PendingUsers(): JSX.Element {
     };
 
     const handleApprove = async (userId: number) => {
-        console.log("🔍 Approving user with ID:", userId);
         setActionLoading(prev => ({ ...prev, [userId]: true }));
         try {
             const res = await adminApi.approveUser(userId);
