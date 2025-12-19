@@ -1,21 +1,9 @@
-// import axios from "axios";
-
-// const axiosClient = axios.create({
-//   baseURL: "http://localhost:4000", // JSON Server
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-// });
-
-// export default axiosClient;
-
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: "https://ee6fe8f80d6f.ngrok-free.app/api", // endpoint backend Go via Ngrok
+  baseURL: "http://192.168.1.184:8080/api", // Backend Go on LAN
   headers: {
     "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "true", // avoid Ngrok warning HTML
   },
   timeout: 10000, // Increase timeout for face processing
 });

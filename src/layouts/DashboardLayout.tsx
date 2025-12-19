@@ -1,9 +1,10 @@
 
+
 import React, { useEffect, useState } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { Menu, X, Sun, Moon, LogOut, Home, Lock, Lightbulb, BarChart3, FileText, Users, Settings, UserCog } from "lucide-react";
+import { Menu, X, Sun, Moon, LogOut, Home, Lock, Lightbulb, BarChart3, FileText, Users, Settings, UserCog, User } from "lucide-react";
 import blackLogo from "../assets/black.png";
 import whiteLogo from "../assets/white.png";
 
@@ -42,6 +43,7 @@ export default function DashboardLayout(): JSX.Element {
         { path: "/dashboard", label: "Home", icon: Home },
         { path: "/dashboard/door", label: "Door", icon: Lock },
         { path: "/dashboard/devices", label: "Devices", icon: Lightbulb },
+        { path: "/dashboard/profile", label: "Profile", icon: User },
         { path: "/dashboard/logs", label: "Logs", icon: FileText },
     ];
 

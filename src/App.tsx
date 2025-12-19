@@ -12,6 +12,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Home from "./pages/dashboard/Home";
 import Door from "./pages/dashboard/Door";
 import DevicesPage from "./pages/dashboard/DevicesPage";
+import Profile from "./pages/dashboard/Profile";
 import Sensors from "./pages/Sensors.jsx";
 import AccessLogs from "./pages/AccessLogs";
 
@@ -57,6 +58,7 @@ function App() {
         <Route index element={<Home />} />
         <Route path="door" element={<Door />} />
         <Route path="devices" element={<DevicesPage />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="logs" element={<AccessLogs />} />
 
         {/* Admin Only Routes */}
