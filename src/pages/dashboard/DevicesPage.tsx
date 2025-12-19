@@ -81,7 +81,7 @@ export default function DevicesPage(): JSX.Element {
             };
             if (device === "curtain" && position !== undefined) payload.position = position;
             await axiosClient.post(`/control/${device}`, payload);
-            
+
             // Optimistic update: langsung update UI tanpa tunggu WebSocket
             if (device === "lamp") {
                 setDevices(prev => ({ ...prev, lamp: action }));
@@ -144,17 +144,14 @@ export default function DevicesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${
-                        isLampOn ? "bg-yellow-100 dark:bg-yellow-900/30" : isDark ? "bg-slate-700" : "bg-slate-100"
-                    }`}>
-                        <span className={`font-semibold ${
-                            isLampOn ? "text-yellow-700 dark:text-yellow-300" : isDark ? "text-slate-300" : "text-slate-700"
+                    <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${isLampOn ? "bg-yellow-100 dark:bg-yellow-900/30" : isDark ? "bg-slate-700" : "bg-slate-100"
                         }`}>
+                        <span className={`font-semibold ${isLampOn ? "text-yellow-700 dark:text-yellow-300" : isDark ? "text-slate-300" : "text-slate-700"
+                            }`}>
                             {isLampOn ? "Menyala" : "Mati"}
                         </span>
-                        <Power className={`w-5 h-5 ${
-                            isLampOn ? "text-yellow-600 dark:text-yellow-400" : isDark ? "text-slate-400" : "text-slate-500"
-                        }`} />
+                        <Power className={`w-5 h-5 ${isLampOn ? "text-yellow-600 dark:text-yellow-400" : isDark ? "text-slate-400" : "text-slate-500"
+                            }`} />
                     </div>
 
                     <div className="mb-4">
@@ -165,26 +162,24 @@ export default function DevicesPage(): JSX.Element {
                             <button
                                 onClick={() => syncMode("lamp")}
                                 disabled={!!loading["mode-lamp"]}
-                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                                    modes.lamp === "manual"
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${modes.lamp === "manual"
                                         ? "bg-blue-600 text-white shadow-md"
                                         : isDark
-                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                                } ${loading["mode-lamp"] ? "opacity-70 cursor-not-allowed" : ""}`}
+                                            ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                            : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                    } ${loading["mode-lamp"] ? "opacity-70 cursor-not-allowed" : ""}`}
                             >
                                 Manual
                             </button>
                             <button
                                 onClick={() => syncMode("lamp")}
                                 disabled={!!loading["mode-lamp"]}
-                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                                    modes.lamp === "auto"
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${modes.lamp === "auto"
                                         ? "bg-green-600 text-white shadow-md"
                                         : isDark
-                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                                } ${loading["mode-lamp"] ? "opacity-70 cursor-not-allowed" : ""}`}
+                                            ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                            : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                    } ${loading["mode-lamp"] ? "opacity-70 cursor-not-allowed" : ""}`}
                             >
                                 Otomatis
                             </button>
@@ -194,27 +189,25 @@ export default function DevicesPage(): JSX.Element {
                     <div className="flex gap-3">
                         <button
                             onClick={() => handleDeviceControl("lamp", "on")}
-                            disabled={loading.lamp || isLampOn}
-                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
-                                loading.lamp || isLampOn
+                            disabled={loading.lamp || isLampOn || modes.lamp === "auto"}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${loading.lamp || isLampOn || modes.lamp === "auto"
                                     ? isDark
                                         ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                                         : "bg-slate-200 text-slate-400 cursor-not-allowed"
                                     : "bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg hover:shadow-xl"
-                            }`}
+                                }`}
                         >
                             Nyalakan
                         </button>
                         <button
                             onClick={() => handleDeviceControl("lamp", "off")}
-                            disabled={loading.lamp || !isLampOn}
-                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
-                                loading.lamp || !isLampOn
+                            disabled={loading.lamp || !isLampOn || modes.lamp === "auto"}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${loading.lamp || !isLampOn || modes.lamp === "auto"
                                     ? isDark
                                         ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                                         : "bg-slate-200 text-slate-400 cursor-not-allowed"
                                     : "bg-slate-600 hover:bg-slate-700 text-white shadow-lg hover:shadow-xl"
-                            }`}
+                                }`}
                         >
                             Matikan
                         </button>
@@ -237,17 +230,14 @@ export default function DevicesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${
-                        isCurtainOpen ? "bg-blue-100 dark:bg-blue-900/30" : isDark ? "bg-slate-700" : "bg-slate-100"
-                    }`}>
-                        <span className={`font-semibold ${
-                            isCurtainOpen ? "text-blue-700 dark:text-blue-300" : isDark ? "text-slate-300" : "text-slate-700"
+                    <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${isCurtainOpen ? "bg-blue-100 dark:bg-blue-900/30" : isDark ? "bg-slate-700" : "bg-slate-100"
                         }`}>
+                        <span className={`font-semibold ${isCurtainOpen ? "text-blue-700 dark:text-blue-300" : isDark ? "text-slate-300" : "text-slate-700"
+                            }`}>
                             {isCurtainOpen ? "Terbuka" : "Tertutup"}
                         </span>
-                        <Wind className={`w-5 h-5 ${
-                            isCurtainOpen ? "text-blue-600 dark:text-blue-400" : isDark ? "text-slate-400" : "text-slate-500"
-                        }`} />
+                        <Wind className={`w-5 h-5 ${isCurtainOpen ? "text-blue-600 dark:text-blue-400" : isDark ? "text-slate-400" : "text-slate-500"
+                            }`} />
                     </div>
 
                     <div className="mb-4">
@@ -258,26 +248,24 @@ export default function DevicesPage(): JSX.Element {
                             <button
                                 onClick={() => syncMode("curtain")}
                                 disabled={!!loading["mode-curtain"]}
-                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                                    modes.curtain === "manual"
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${modes.curtain === "manual"
                                         ? "bg-blue-600 text-white shadow-md"
                                         : isDark
-                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                                } ${loading["mode-curtain"] ? "opacity-70 cursor-not-allowed" : ""}`}
+                                            ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                            : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                    } ${loading["mode-curtain"] ? "opacity-70 cursor-not-allowed" : ""}`}
                             >
                                 Manual
                             </button>
                             <button
                                 onClick={() => syncMode("curtain")}
                                 disabled={!!loading["mode-curtain"]}
-                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
-                                    modes.curtain === "auto"
+                                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${modes.curtain === "auto"
                                         ? "bg-green-600 text-white shadow-md"
                                         : isDark
-                                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                                        : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                                } ${loading["mode-curtain"] ? "opacity-70 cursor-not-allowed" : ""}`}
+                                            ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                            : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                    } ${loading["mode-curtain"] ? "opacity-70 cursor-not-allowed" : ""}`}
                             >
                                 Otomatis
                             </button>
@@ -287,27 +275,25 @@ export default function DevicesPage(): JSX.Element {
                     <div className="flex gap-3">
                         <button
                             onClick={() => handleDeviceControl("curtain", "open")}
-                            disabled={loading.curtain || isCurtainOpen}
-                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
-                                loading.curtain || isCurtainOpen
+                            disabled={loading.curtain || isCurtainOpen || modes.curtain === "auto"}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${loading.curtain || isCurtainOpen || modes.curtain === "auto"
                                     ? isDark
                                         ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                                         : "bg-slate-200 text-slate-400 cursor-not-allowed"
                                     : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl"
-                            }`}
+                                }`}
                         >
                             Buka
                         </button>
                         <button
                             onClick={() => handleDeviceControl("curtain", "close")}
-                            disabled={loading.curtain || !isCurtainOpen}
-                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${
-                                loading.curtain || !isCurtainOpen
+                            disabled={loading.curtain || !isCurtainOpen || modes.curtain === "auto"}
+                            className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${loading.curtain || !isCurtainOpen || modes.curtain === "auto"
                                     ? isDark
                                         ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                                         : "bg-slate-200 text-slate-400 cursor-not-allowed"
                                     : "bg-slate-600 hover:bg-slate-700 text-white shadow-lg hover:shadow-xl"
-                            }`}
+                                }`}
                         >
                             Tutup
                         </button>
