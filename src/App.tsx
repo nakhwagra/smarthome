@@ -19,6 +19,7 @@ import AccessLogs from "./pages/AccessLogs";
 // Admin Pages
 import PendingUsers from "./pages/admin/PendingUsers";
 import UserManagement from "./pages/admin/UserManagement";
+import SensorsAnalytics from "./pages/admin/SensorsAnalytics";
 import Settings from "./pages/admin/Settings";
 
 // Protected Route Component
@@ -64,7 +65,7 @@ function App() {
         {/* Admin Only Routes */}
         <Route path="sensors" element={
           <AdminRoute>
-            <Sensors />
+            <SensorsAnalytics />
           </AdminRoute>
         } />
         <Route path="admin/pending" element={
