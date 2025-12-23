@@ -65,7 +65,6 @@ export default function SensorsAnalytics(): JSX.Element {
 
     useEffect(() => {
         fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange, currentPage]);
 
     const handleExportCSV = () => {
