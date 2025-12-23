@@ -99,7 +99,7 @@ export default function SensorsAnalytics(): JSX.Element {
             {/* Header */}
             <div className="mb-8">
                 <h1 className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-                    📊 Sensor Analytics & Monitoring
+                    Sensor Analytics & Monitoring
                 </h1>
                 <p className={`mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
                     Advanced environmental data analysis and insights
@@ -149,7 +149,7 @@ export default function SensorsAnalytics(): JSX.Element {
             {/* Line Chart - Trend */}
             <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6 mb-8`}>
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-slate-900"}`}>
-                    📈 Temperature & Humidity Trend
+                    Temperature & Humidity Trend
                 </h3>
                 {sensorData && sensorData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
@@ -185,7 +185,7 @@ export default function SensorsAnalytics(): JSX.Element {
             {/* Area Chart - Comfort Zone */}
             <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6 mb-8`}>
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-slate-900"}`}>
-                    🌡️ Comfort Zone Visualization
+                    Comfort Zone Visualization
                 </h3>
                 {sensorData && sensorData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
@@ -221,7 +221,7 @@ export default function SensorsAnalytics(): JSX.Element {
             {hourlyData && hourlyData.length > 0 && (
                 <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6 mb-8`}>
                     <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-slate-900"}`}>
-                        📊 Hourly Averages
+                        Hourly Averages
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={hourlyData}>
