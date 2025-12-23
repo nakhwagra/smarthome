@@ -147,7 +147,7 @@ export default function Home(): JSX.Element {
         if (humidRes.data.data?.[0]) setSensors(prev => ({ ...prev, humidity: humidRes.data.data[0].humidity }));
         if (gasRes.data.data?.[0]) setSensors(prev => ({ ...prev, gas: gasRes.data.data[0].ppm_value ?? gasRes.data.data[0].ppm ?? 0 }));
         if (lightRes.data.data?.[0]) setSensors(prev => ({ ...prev, light: lightRes.data.data[0].lux }));
-        
+
         if (lampRes.data.data) {
           setDevices(prev => ({ ...prev, lamp: lampRes.data.data.status === "on" }));
         }
@@ -164,13 +164,13 @@ export default function Home(): JSX.Element {
     let isMounted = true;
 
     const initializeData = async () => {
+      setupMQTTListeners();
       await fetchInitialData();
-      
+
       try {
         await mqttService.connect();
         if (isMounted) {
           setIsConnected(true);
-          setupMQTTListeners();
         }
       } catch {
         if (isMounted) {

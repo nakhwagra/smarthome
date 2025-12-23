@@ -21,7 +21,7 @@ class MQTTService {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const brokerUrl = 'wss://broker.hivemq.com:8884/mqtt';
-      
+
       this.client = mqtt.connect(brokerUrl, {
         clientId: `smarthome_web_${Math.random().toString(16).slice(2, 10)}`,
         clean: true,
@@ -60,7 +60,7 @@ class MQTTService {
 
     const topics = [
       'iotcihuy/home/temperature',
-      'iotcihuy/home/humidity', 
+      'iotcihuy/home/humidity',
       'iotcihuy/home/gas',
       'iotcihuy/home/light',
       'iotcihuy/home/lamp/status',
@@ -75,17 +75,36 @@ class MQTTService {
 
   private handleMessage(topic: string, payload: Buffer): void {
     try {
-      const data = JSON.parse(payload.toString()) as unknown;
+      const rawData = JSON.parse(payload.toString()) as Record<string, unknown>;
       const topicParts = topic.split('/');
-      
+
       let eventType: string;
       if (topicParts.includes('status')) {
         eventType = `${topicParts[topicParts.length - 2]}_status`;
       } else {
         eventType = topicParts[topicParts.length - 1];
       }
-      
-      this.emit(eventType, data);
+
+      // Normalize payload field names for compatibility
+      let normalizedData = rawData;
+
+      // Gas sensor: accept gas_ppm, ppm, or gas
+      if (eventType === 'gas') {
+        const gasValue = rawData.gas_ppm ?? rawData.ppm ?? rawData.gas;
+        if (gasValue !== undefined) {
+          normalizedData = { gas: gasValue };
+        }
+      }
+
+      // Light sensor: accept lux or light
+      if (eventType === 'light') {
+        const lightValue = rawData.lux ?? rawData.light;
+        if (lightValue !== undefined) {
+          normalizedData = { light: lightValue };
+        }
+      }
+
+      this.emit(eventType, normalizedData);
     } catch {
       // Silently ignore parse errors
     }
