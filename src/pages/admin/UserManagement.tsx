@@ -31,6 +31,7 @@ export default function UserManagement(): JSX.Element {
 
     useEffect(() => {
         filterUsers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [users, searchQuery, roleFilter, statusFilter]);
 
     const fetchUsers = async () => {
@@ -422,8 +423,8 @@ export default function UserManagement(): JSX.Element {
                                     value={editForm.name}
                                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                                     className={`w-full px-4 py-2 rounded-lg border ${isDark
-                                            ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                                            : "bg-white border-slate-300 text-slate-900 placeholder-slate-500"
+                                        ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                                        : "bg-white border-slate-300 text-slate-900 placeholder-slate-500"
                                         } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                     placeholder="Masukkan nama"
                                 />
@@ -439,8 +440,8 @@ export default function UserManagement(): JSX.Element {
                                     value={editForm.email}
                                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                                     className={`w-full px-4 py-2 rounded-lg border ${isDark
-                                            ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                                            : "bg-white border-slate-300 text-slate-900 placeholder-slate-500"
+                                        ? "bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                                        : "bg-white border-slate-300 text-slate-900 placeholder-slate-500"
                                         } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                     placeholder="Masukkan email"
                                 />
@@ -455,8 +456,8 @@ export default function UserManagement(): JSX.Element {
                                     value={editForm.role}
                                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value as 'admin' | 'user' })}
                                     className={`w-full px-4 py-2 rounded-lg border ${isDark
-                                            ? "bg-slate-700 border-slate-600 text-white"
-                                            : "bg-white border-slate-300 text-slate-900"
+                                        ? "bg-slate-700 border-slate-600 text-white"
+                                        : "bg-white border-slate-300 text-slate-900"
                                         } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                 >
                                     <option value="user">User</option>
@@ -473,8 +474,8 @@ export default function UserManagement(): JSX.Element {
                                     value={editForm.status}
                                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as 'active' | 'pending' | 'rejected' })}
                                     className={`w-full px-4 py-2 rounded-lg border ${isDark
-                                            ? "bg-slate-700 border-slate-600 text-white"
-                                            : "bg-white border-slate-300 text-slate-900"
+                                        ? "bg-slate-700 border-slate-600 text-white"
+                                        : "bg-white border-slate-300 text-slate-900"
                                         } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                 >
                                     <option value="active">Active</option>
@@ -494,8 +495,8 @@ export default function UserManagement(): JSX.Element {
                                     value={editingUser.face_encoding_path || "Belum ada face encoding"}
                                     disabled
                                     className={`w-full px-4 py-2 rounded-lg border ${isDark
-                                            ? "bg-slate-900 border-slate-700 text-slate-500"
-                                            : "bg-slate-100 border-slate-200 text-slate-500"
+                                        ? "bg-slate-900 border-slate-700 text-slate-500"
+                                        : "bg-slate-100 border-slate-200 text-slate-500"
                                         } cursor-not-allowed`}
                                 />
                                 <p className={`mt-1 text-xs ${isDark ? "text-slate-500" : "text-slate-400"}`}>
@@ -509,8 +510,8 @@ export default function UserManagement(): JSX.Element {
                             <button
                                 onClick={() => setEditingUser(null)}
                                 className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${isDark
-                                        ? "bg-slate-700 hover:bg-slate-600 text-white"
-                                        : "bg-slate-200 hover:bg-slate-300 text-slate-900"
+                                    ? "bg-slate-700 hover:bg-slate-600 text-white"
+                                    : "bg-slate-200 hover:bg-slate-300 text-slate-900"
                                     }`}
                             >
                                 Batal
@@ -519,10 +520,10 @@ export default function UserManagement(): JSX.Element {
                                 onClick={handleEditSubmit}
                                 disabled={editLoading || !editForm.name || !editForm.email}
                                 className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${editLoading || !editForm.name || !editForm.email
-                                        ? isDark
-                                            ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                                            : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl"
+                                    ? isDark
+                                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl"
                                     }`}
                             >
                                 {editLoading ? "Menyimpan..." : "Simpan Perubahan"}

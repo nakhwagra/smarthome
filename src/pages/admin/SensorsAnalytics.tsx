@@ -1,6 +1,6 @@
 // src/pages/admin/SensorsAnalytics.tsx
 import React, { useEffect, useState } from "react";
-import { Thermometer, Droplets, RefreshCw, Download } from "lucide-react";
+import { Thermometer, Droplets, RefreshCw } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import sensorApi, { SensorStatsResponse, CombinedSensorData, HourlyData } from "../../api/sensorApi";
 import TimeRangeFilter from "../../components/TimeRangeFilter";
@@ -27,24 +27,36 @@ export default function SensorsAnalytics(): JSX.Element {
 
             // Fetch statistics
             const statsRes = await sensorApi.getStatistics(timeRange);
-            if (statsRes.data.success) {
+            if (statsRes.data.success && statsRes.data.data) {
                 setStats(statsRes.data.data);
+            } else {
+                console.warn("Stats API returned no data");
             }
 
             // Fetch paginated data
             const dataRes = await sensorApi.getPaginatedData(timeRange, currentPage, 50);
-            if (dataRes.data.success) {
-                setSensorData(dataRes.data.data.data);
-                setTotalPages(dataRes.data.data.total_pages);
+            if (dataRes.data.success && dataRes.data.data && dataRes.data.data.data) {
+                setSensorData(dataRes.data.data.data || []); // Fallback to empty array
+                setTotalPages(dataRes.data.data.total_pages || 1);
+            } else {
+                console.warn("Paginated data API returned no data");
+                setSensorData([]); // Ensure it's always an array
             }
 
             // Fetch hourly data
             const hourlyRes = await sensorApi.getHourlyData(timeRange);
-            if (hourlyRes.data.success) {
-                setHourlyData(hourlyRes.data.data);
+            if (hourlyRes.data.success && hourlyRes.data.data) {
+                setHourlyData(hourlyRes.data.data || []);
+            } else {
+                console.warn("Hourly data API returned no data");
+                setHourlyData([]);
             }
         } catch (error) {
             console.error("Failed to fetch sensor analytics:", error);
+            // Ensure state is always valid even on error
+            setSensorData([]);
+            setHourlyData([]);
+            alert("Failed to load sensor data. Please check if backend is running and database has data.");
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -53,6 +65,7 @@ export default function SensorsAnalytics(): JSX.Element {
 
     useEffect(() => {
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRange, currentPage]);
 
     const handleExportCSV = () => {
@@ -100,10 +113,10 @@ export default function SensorsAnalytics(): JSX.Element {
                     onClick={fetchData}
                     disabled={refreshing}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${refreshing
-                            ? "opacity-50 cursor-not-allowed"
-                            : isDark
-                                ? "bg-slate-700 hover:bg-slate-600 text-white"
-                                : "bg-slate-200 hover:bg-slate-300 text-slate-900"
+                        ? "opacity-50 cursor-not-allowed"
+                        : isDark
+                            ? "bg-slate-700 hover:bg-slate-600 text-white"
+                            : "bg-slate-200 hover:bg-slate-300 text-slate-900"
                         }`}
                 >
                     <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
@@ -138,29 +151,35 @@ export default function SensorsAnalytics(): JSX.Element {
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-slate-900"}`}>
                     📈 Temperature & Humidity Trend
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={sensorData.slice().reverse()}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#e2e8f0"} />
-                        <XAxis
-                            dataKey="timestamp"
-                            tickFormatter={(ts) => format(new Date(ts), "HH:mm")}
-                            stroke={isDark ? "#94a3b8" : "#64748b"}
-                        />
-                        <YAxis yAxisId="left" stroke={isDark ? "#94a3b8" : "#64748b"} />
-                        <YAxis yAxisId="right" orientation="right" stroke={isDark ? "#94a3b8" : "#64748b"} />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: isDark ? "#1e293b" : "#ffffff",
-                                border: `1px solid ${isDark ? "#475569" : "#e2e8f0"}`,
-                                borderRadius: "8px",
-                            }}
-                            labelFormatter={(ts) => format(new Date(ts), "MMM dd, HH:mm:ss")}
-                        />
-                        <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="temperature" stroke="#f97316" strokeWidth={2} name="Temperature (°C)" />
-                        <Line yAxisId="right" type="monotone" dataKey="humidity" stroke="#06b6d4" strokeWidth={2} name="Humidity (%)" />
-                    </LineChart>
-                </ResponsiveContainer>
+                {sensorData && sensorData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={sensorData.slice().reverse()}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#e2e8f0"} />
+                            <XAxis
+                                dataKey="timestamp"
+                                tickFormatter={(ts) => format(new Date(ts), "HH:mm")}
+                                stroke={isDark ? "#94a3b8" : "#64748b"}
+                            />
+                            <YAxis yAxisId="left" stroke={isDark ? "#94a3b8" : "#64748b"} />
+                            <YAxis yAxisId="right" orientation="right" stroke={isDark ? "#94a3b8" : "#64748b"} />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: isDark ? "#1e293b" : "#ffffff",
+                                    border: `1px solid ${isDark ? "#475569" : "#e2e8f0"}`,
+                                    borderRadius: "8px",
+                                }}
+                                labelFormatter={(ts) => format(new Date(ts), "MMM dd, HH:mm:ss")}
+                            />
+                            <Legend />
+                            <Line yAxisId="left" type="monotone" dataKey="temperature" stroke="#f97316" strokeWidth={2} name="Temperature (°C)" />
+                            <Line yAxisId="right" type="monotone" dataKey="humidity" stroke="#06b6d4" strokeWidth={2} name="Humidity (%)" />
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="h-[300px] flex items-center justify-center">
+                        <p className={isDark ? "text-slate-400" : "text-slate-600"}>No data available</p>
+                    </div>
+                )}
             </div>
 
             {/* Area Chart - Comfort Zone */}
@@ -168,32 +187,38 @@ export default function SensorsAnalytics(): JSX.Element {
                 <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-slate-900"}`}>
                     🌡️ Comfort Zone Visualization
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={sensorData.slice().reverse()}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#e2e8f0"} />
-                        <XAxis
-                            dataKey="timestamp"
-                            tickFormatter={(ts) => format(new Date(ts), "HH:mm")}
-                            stroke={isDark ? "#94a3b8" : "#64748b"}
-                        />
-                        <YAxis stroke={isDark ? "#94a3b8" : "#64748b"} />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: isDark ? "#1e293b" : "#ffffff",
-                                border: `1px solid ${isDark ? "#475569" : "#e2e8f0"}`,
-                                borderRadius: "8px",
-                            }}
-                            labelFormatter={(ts) => format(new Date(ts), "MMM dd, HH:mm:ss")}
-                        />
-                        <Legend />
-                        <Area type="monotone" dataKey="temperature" stroke="#f97316" fill="#f9731680" name="Temperature (°C)" />
-                        <Area type="monotone" dataKey="humidity" stroke="#06b6d4" fill="#06b6d480" name="Humidity (%)" />
-                    </AreaChart>
-                </ResponsiveContainer>
+                {sensorData && sensorData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={sensorData.slice().reverse()}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#e2e8f0"} />
+                            <XAxis
+                                dataKey="timestamp"
+                                tickFormatter={(ts) => format(new Date(ts), "HH:mm")}
+                                stroke={isDark ? "#94a3b8" : "#64748b"}
+                            />
+                            <YAxis stroke={isDark ? "#94a3b8" : "#64748b"} />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: isDark ? "#1e293b" : "#ffffff",
+                                    border: `1px solid ${isDark ? "#475569" : "#e2e8f0"}`,
+                                    borderRadius: "8px",
+                                }}
+                                labelFormatter={(ts) => format(new Date(ts), "MMM dd, HH:mm:ss")}
+                            />
+                            <Legend />
+                            <Area type="monotone" dataKey="temperature" stroke="#f97316" fill="#f9731680" name="Temperature (°C)" />
+                            <Area type="monotone" dataKey="humidity" stroke="#06b6d4" fill="#06b6d480" name="Humidity (%)" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="h-[300px] flex items-center justify-center">
+                        <p className={isDark ? "text-slate-400" : "text-slate-600"}>No data available</p>
+                    </div>
+                )}
             </div>
 
             {/* Bar Chart - Hourly Comparison */}
-            {hourlyData.length > 0 && (
+            {hourlyData && hourlyData.length > 0 && (
                 <div className={`rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"} shadow-sm p-6 mb-8`}>
                     <h3 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-slate-900"}`}>
                         📊 Hourly Averages

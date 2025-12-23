@@ -1,6 +1,6 @@
 // src/components/TimeRangeFilter.tsx
 import React from "react";
-import { Calendar, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 
 interface TimeRangeFilterProps {
     value: string;
@@ -25,10 +25,10 @@ const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({ value, onChange, isDa
                         key={range.value}
                         onClick={() => onChange(range.value)}
                         className={`px-4 py-2 rounded-lg font-semibold transition-all ${value === range.value
-                                ? "bg-blue-600 text-white shadow-lg"
-                                : isDark
-                                    ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                                    : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                            ? "bg-blue-600 text-white shadow-lg"
+                            : isDark
+                                ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                             }`}
                     >
                         {range.label}

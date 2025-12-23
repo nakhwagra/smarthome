@@ -1,6 +1,6 @@
 // src/pages/dashboard/Profile.tsx
 import React, { useEffect, useState, useRef } from "react";
-import { User, Mail, Shield, Calendar, Camera, Lock, Edit2, X, Check } from "lucide-react";
+import { User, Mail, Shield, Calendar, Camera, Lock, Edit2, X } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import userApi, { UpdateProfileRequest, ChangePasswordRequest } from "../../api/userApi";
 import { User as UserType } from "../../api/adminApi";
@@ -76,8 +76,9 @@ export default function Profile(): JSX.Element {
                 // Update localStorage
                 localStorage.setItem("auth_user", JSON.stringify(res.data.data));
             }
-        } catch (err: any) {
-            alert(err?.response?.data?.error || "Gagal update profil");
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { error?: string } } };
+            alert(error?.response?.data?.error || "Gagal update profil");
         } finally {
             setEditLoading(false);
         }
@@ -94,8 +95,9 @@ export default function Profile(): JSX.Element {
                 setPasswordMode(false);
                 setPasswordForm({ current_password: "", new_password: "" });
             }
-        } catch (err: any) {
-            alert(err?.response?.data?.error || "Gagal ubah password");
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { error?: string } } };
+            alert(error?.response?.data?.error || "Gagal ubah password");
         } finally {
             setPasswordLoading(false);
         }
@@ -108,7 +110,7 @@ export default function Profile(): JSX.Element {
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
             }
-        } catch (err) {
+        } catch {
             alert("Gagal mengakses webcam");
         }
     };
@@ -155,8 +157,9 @@ export default function Profile(): JSX.Element {
                 localStorage.setItem("auth_user", JSON.stringify(res.data.data));
 
             }
-        } catch (err: any) {
-            alert(err?.response?.data?.error || "Gagal re-enroll wajah");
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { error?: string } } };
+            alert(error?.response?.data?.error || "Gagal re-enroll wajah");
         } finally {
             setReEnrollLoading(false);
         }

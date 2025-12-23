@@ -13,7 +13,6 @@ import Home from "./pages/dashboard/Home";
 import Door from "./pages/dashboard/Door";
 import DevicesPage from "./pages/dashboard/DevicesPage";
 import Profile from "./pages/dashboard/Profile";
-import Sensors from "./pages/Sensors.jsx";
 import AccessLogs from "./pages/AccessLogs";
 
 // Admin Pages
