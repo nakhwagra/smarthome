@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: "http://192.168.1.129:8080/api", // Backend Go on LAN
+  baseURL: "http://192.168.1.85:8080/api", // Backend Go on LAN
   headers: {
     "Content-Type": "application/json",
   },
