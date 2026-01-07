@@ -21,7 +21,7 @@ export interface UpdateUserRequest {
 const adminApi = {
     // Universal PIN Management
     getUniversalPin: () => axiosClient.get<{ success: boolean; data: { pin: string } }>("/admin/pin"),
-    updateUniversalPin: (pin: string) => axiosClient.put<{ success: boolean; message: string }>("/admin/pin", { pin }),
+    setUniversalPin: (pin: string, setBy: number) => axiosClient.post<{ success: boolean; message: string }>("/admin/pin", { universal_pin: pin, set_by: setBy }),
 
     // Pending User Management
     getPendingUsers: () => axiosClient.get<{ success: boolean; data: User[] }>("/admin/users/pending"),
