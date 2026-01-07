@@ -3,7 +3,7 @@ import { Unlock, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import axiosClient from "../../api/axiosClient";
 import { useTheme } from "../../context/ThemeContext";
 
-const PYTHON_SERVICE_URL = "http://localhost:5001";
+const PYTHON_SERVICE_URL = "http://192.168.1.93";
 
 export default function Door(): JSX.Element {
     const [doorStatus, setDoorStatus] = useState<string>("locked");
